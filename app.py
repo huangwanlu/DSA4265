@@ -15,7 +15,7 @@ def get_bot_response(user_input):
 
 @app.route("/")
 def home():
-    return render_template("chat.html")  # Serve the HTML
+    return render_template("chat_new.html")  # Serve the HTML
 
 @app.route("/get_response", methods=["POST"])
 def get_response():
