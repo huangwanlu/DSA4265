@@ -176,8 +176,6 @@ from sklearn.metrics.pairwise import cosine_similarity
 from langchain_core.documents import Document
 from langchain.memory import ConversationBufferMemory
 
-# External components assumed to be defined elsewhere
-from interactive_bot_graph import graph, llm, sentence_model, knowledge_graph
 
 # ---- User Profile ----
 user_profile = {
