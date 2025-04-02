@@ -1,17 +1,11 @@
 from flask import Flask, render_template, request, jsonify
+from interactive_bot import interactive_chatbot  # Import your actual chatbot logic
 
 app = Flask(__name__)
 
-# Chatbot logic (replace with your actual AI/API calls)
+
 def get_bot_response(user_input):
-    responses = [
-        f"I understand you're asking about: {user_input}",
-        f"That's an interesting point about {user_input}",
-        f"Let me think about {user_input}",
-        f"I'm analyzing your question: {user_input}",
-        f"Thanks for sharing: {user_input}"
-    ]
-    return responses[0]  # Or use random.choice(responses)
+    return interactive_chatbot(user_input)
 
 @app.route("/")
 def home():
