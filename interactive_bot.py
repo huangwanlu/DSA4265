@@ -515,7 +515,7 @@ def interactive_chatbot(user_input):
 # ---- Interactive chatbot ----
 chat_history = []
 
-def interactive_chatbot():
+def def interactive_chatbot(user_input):  # one input string, returns a response string
     print("Hello! I'm your HDB eligibility assistant.")
     session_id = check_existing_user()  # New or returning?
 
@@ -546,5 +546,3 @@ def interactive_chatbot():
 
         print("\n", answer)
         print(f"\n Current user profile (ID: {session_id}):", user_profile)
-
-interactive_chatbot()
