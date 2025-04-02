@@ -100,7 +100,7 @@ for chunk in all_splits:
         type="document",
         embedding=doc_embedding,
         content=chunk.page_content,
-        metadata=metadata,  # ✅ Store all metadata
+        metadata=metadata,  #  Store all metadata
         label=f"Document {doc_node_id}"
     )
 
@@ -234,10 +234,10 @@ def update_user_profile(query: str):
 
 def ask_missing_fields():
     prompts = {
-        "age": "🔎 What is your age? ",
-        "income": "💰 What is your monthly income? ",
-        "relationship_status": "❤️ What is your relationship status? ",
-        "flat_type": "🏠 Are you interested in a BTO or resale flat? ",
+        "age": " What is your age? ",
+        "income": " What is your monthly income? ",
+        "relationship_status": " What is your relationship status? ",
+        "flat_type": " Are you interested in a BTO or resale flat? ",
     }
     
     for key, prompt in prompts.items():
@@ -264,9 +264,9 @@ def load_user_profile():
     if os.path.exists(PROFILE_PATH):
         with open(PROFILE_PATH, "r") as f:
             user_profile = json.load(f)
-        print("✅ User profile loaded.")
+        print(" User profile loaded.")
     else:
-        print("ℹ️ No saved profile found. Using defaults.")
+        print(" No saved profile found. Using defaults.")
 
 # Load profile at startup
 load_user_profile()
@@ -276,7 +276,7 @@ def generate_hypothetical_node(state: State) -> State:
     profile = user_profile
     flat = profile.get("flat_type")
 
-    # 🔀 Flat type context handling
+    # Flat type context handling
     if flat == "bto":
         flat_context = "The user is interested in a BTO flat."
     elif flat == "resale":
@@ -292,7 +292,7 @@ def generate_hypothetical_node(state: State) -> State:
             "Please simulate an answer that covers both BTO and resale paths if relevant."
         )
 
-    # 📋 Full profile summary
+    # Full profile summary
     profile_summary = f"""User Profile:
 - Age: {profile.get('age')}
 - Income: {profile.get('income')}
@@ -302,7 +302,7 @@ def generate_hypothetical_node(state: State) -> State:
 {flat_context}
 """
 
-    # 🧠 HyDE generation prompt
+    # HyDE generation prompt
     response = llm.invoke([
         {"role": "system", "content": f"Generate a hypothetical answer as if it came from a government housing policy document. Use the user's profile below:\n\n{profile_summary}"},
         {"role": "user", "content": state["question"]}
@@ -342,11 +342,11 @@ def generate_node(state: State) -> State:
     # history = "\n".join(state.get("messages", [])[-5:])
     history = chat_memory.load_memory_variables({}).get("chat_history", "")
     
-    # ✅ Add profile logic
+    # Add profile logic
     profile = user_profile
     flat = profile.get("flat_type")
 
-    # 🔀 Flat type context handling
+    # Flat type context handling
     if flat == "bto":
         flat_context = "The user is interested in a BTO flat."
     elif flat == "resale":
@@ -362,7 +362,7 @@ def generate_node(state: State) -> State:
             "If the answer depends on flat type, explain both options clearly."
         )
 
-    # 📋 Full profile summary to include in prompt
+    # Full profile summary to include in prompt
     profile_summary = f"""
 User Profile:
 - Age: {profile.get('age')}
@@ -373,16 +373,16 @@ User Profile:
 {flat_context}
 """
 
-    # 🧠 Prompt messages
+    # Prompt messages
     prompt = [
         {"role": "system", "content": f"""You are an HDB assistant. Use the following user profile and retrieved documents to answer accurately.
 
 {profile_summary}
 
-📚 Retrieved Context:
+Retrieved Context:
 {context_text}
 
-🧠 Chat History:
+Chat History:
 {history if history else "No prior chat history."}
 """ },
         {"role": "user", "content": state['question']}
@@ -417,11 +417,11 @@ def fact_check_node(state: State) -> State:
     docs = [doc[0] if isinstance(doc, tuple) else doc for doc in state.get("context", [])]
 
     if not fact_check_answer(answer, docs):
-        print("⚠️ Fact-check failed. Switching to safe RAG answer.")
+        print("Fact-check failed. Switching to safe RAG answer.")
 
         context_text = "\n\n".join(doc.page_content for doc in docs)
 
-        # ✅ Reuse full user profile in fallback
+        # Reuse full user profile in fallback
         profile = user_profile
         flat = profile.get("flat_type")
         if flat == "bto":
@@ -454,7 +454,7 @@ User Profile:
 
 {profile_summary}
 
-📚 Retrieved Context:
+Retrieved Context:
 {context_text}
 """ },
             {"role": "user", "content": state["question"]}
@@ -463,7 +463,7 @@ User Profile:
         fallback = llm.invoke(fallback_prompt)
         state["answer"] = fallback.content
     else:
-        print("✅ Answer passed fact-check.")
+        print("Answer passed fact-check.")
 
     return state
 
@@ -495,17 +495,17 @@ def generate_user_id(length=6):
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
     
 def check_existing_user():
-    print("🔁 Welcome back! If you're a returning user, enter your serial code. Otherwise, press Enter to start fresh.")
-    user_input = input("🔑 Serial code: ").strip().upper()
+    print("Welcome back! If you're a returning user, enter your serial code. Otherwise, press Enter to start fresh.")
+    user_input = input("Serial code: ").strip().upper()
 
     if user_input and user_input in user_memory_store:
-        print(f"✅ Found your profile with ID {user_input}. Welcome back!")
+        print(f"Found your profile with ID {user_input}. Welcome back!")
         user_profile.update(user_memory_store[user_input])
         return user_input
     else:
         new_id = generate_user_id()
-        print(f"🆕 New session started. Your serial code is: {new_id}")
-        print("📌 Save this code to continue later with the same profile. And what do you want to ask?")
+        print(f"New session started. Your serial code is: {new_id}")
+        print("Save this code to continue later with the same profile. And what do you want to ask?")
         return new_id
 
 def interactive_chatbot(user_input):
@@ -516,16 +516,16 @@ def interactive_chatbot(user_input):
 chat_history = []
 
 def interactive_chatbot():
-    print("👋 Hello! I'm your HDB eligibility assistant.")
-    session_id = check_existing_user()  # 🔑 New or returning?
+    print("Hello! I'm your HDB eligibility assistant.")
+    session_id = check_existing_user()  # New or returning?
 
     while True:
-        query = input("\n🧑 You: ")
+        query = input("\n You: ")
         if query.lower() in ["exit", "quit"]:
-            # 💾 Save user profile
+            # Save user profile
             user_memory_store[session_id] = user_profile.copy()
-            print(f"📦 Profile saved under ID: {session_id}")
-            print("👋 Goodbye! Use your serial next time to continue.")
+            print(f"Profile saved under ID: {session_id}")
+            print("Goodbye! Use your serial next time to continue.")
             break
 
         update_user_profile(query)
@@ -544,7 +544,7 @@ def interactive_chatbot():
         answer = result["answer"]
         chat_history.append(f"Assistant: {answer}")
 
-        print("\n🤖", answer)
-        print(f"\n🧠 Current user profile (ID: {session_id}):", user_profile)
+        print("\n", answer)
+        print(f"\n Current user profile (ID: {session_id}):", user_profile)
 
 interactive_chatbot()
