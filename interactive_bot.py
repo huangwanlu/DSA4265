@@ -164,40 +164,60 @@ def visualize_graph():
 # if len(knowledge_graph.nodes) > 0:
 #     visualize_graph()
 
-from typing import List, Tuple, Optional, TypedDict
-from langchain_core.documents import Document
+import os
+import json
 import re
-from collections import defaultdict
-import hashlib
+import random
+import string
+from typing import List, Tuple, Optional, TypedDict
 from difflib import SequenceMatcher
+from collections import defaultdict
 from sklearn.metrics.pairwise import cosine_similarity
+from langchain_core.documents import Document
+from langchain.memory import ConversationBufferMemory
 
-# ---- LLM and sentence model (must be defined beforehand) ----
-# llm = ChatOpenAI()
-# sentence_model = SentenceTransformer(...)
-# knowledge_graph = your NetworkX graph with embedded document nodes
+# External components assumed to be defined elsewhere
+from interactive_bot_graph import graph, llm, sentence_model, knowledge_graph
 
-# ---- Shared memory structure ----
+# ---- User Profile ----
 user_profile = {
     "age": None,
     "income": None,
     "flat_type": None,
     "relationship_status": None,
 }
+user_memory_store = {}
+chat_history = []
+chat_memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+PROFILE_PATH = "user_profile.json"
 
-# ---- LangGraph-compatible State ----
-class State(TypedDict):
-    question: str
-    hypothetical_doc: Optional[str]
-    context: List[Tuple[Document, float]]
-    answer: Optional[str]
-    messages: List[str]
+def generate_user_id(length=6):
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
 
-# ---- User profile utilities ----
+def check_existing_user(serial_code=None):
+    if serial_code and serial_code.strip().upper() in user_memory_store:
+        serial_code = serial_code.strip().upper()
+        user_profile.update(user_memory_store[serial_code])
+        return serial_code, f"Welcome back! Found your profile with ID {serial_code}. How can I help you today?"
+    else:
+        new_id = generate_user_id()
+        user_memory_store[new_id] = {}
+        return new_id, f"New session started. Your serial code is: {new_id}. Save this to continue later!"
+
+def save_user_profile():
+    with open(PROFILE_PATH, "w") as f:
+        json.dump(user_profile, f, indent=2)
+
+def load_user_profile():
+    global user_profile
+    if os.path.exists(PROFILE_PATH):
+        with open(PROFILE_PATH, "r") as f:
+            user_profile.update(json.load(f))
+
 def extract_age(query: str):
     match = re.search(r'\b(?:i am|i’m|im)?\s*(\d{2})\s*(?:years old|y/o|yo|yrs)?\b', query.lower())
     return int(match.group(1)) if match else None
-    
+
 def extract_income(query: str):
     match = re.search(r'\$?\s?(\d{3,5})', query)
     return int(match.group(1)) if match else None
@@ -213,18 +233,13 @@ def extract_relationship(query: str):
 
 def extract_flat_type(query: str):
     q = query.lower()
-    
-    # Handle both / open-ended cases
     if any(word in q for word in ["both", "not sure", "unsure", "either", "any"]):
         return "both"
-    
     if "bto" in q:
         return "bto"
     if "resale" in q:
         return "resale"
-    
     return None
-
 
 def update_user_profile(query: str):
     user_profile["age"] = extract_age(query) or user_profile["age"]
@@ -239,310 +254,30 @@ def ask_missing_fields():
         "relationship_status": " What is your relationship status? ",
         "flat_type": " Are you interested in a BTO or resale flat? ",
     }
-    
-    for key, prompt in prompts.items():
-        if not user_profile[key]:
-            response = input(prompt)
-            update_user_profile(response)
+    follow_up_questions = [prompt for key, prompt in prompts.items() if not user_profile[key]]
+    return " ".join(follow_up_questions) if follow_up_questions else ""
 
-from langchain.memory import ConversationBufferMemory
-import json
-import os
+def interactive_chatbot(user_input, serial_code=None):
+    session_id, welcome_message = check_existing_user(serial_code)
 
-# 1. Short-term memory (conversation tracking)
-chat_memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+    update_user_profile(user_input)
+    save_user_profile()
 
-# 2. Long-term memory persistence (user profile)
-PROFILE_PATH = "user_profile.json"
+    chat_history.append(f"User: {user_input}")
+    result = graph.invoke({
+        "question": user_input,
+        "hypothetical_doc": None,
+        "context": [],
+        "answer": None,
+        "messages": chat_history
+    })
 
-def save_user_profile():
-    with open(PROFILE_PATH, "w") as f:
-        json.dump(user_profile, f)
+    answer = result["answer"]
+    chat_history.append(f"Assistant: {answer}")
 
-def load_user_profile():
-    global user_profile
-    if os.path.exists(PROFILE_PATH):
-        with open(PROFILE_PATH, "r") as f:
-            user_profile = json.load(f)
-        print(" User profile loaded.")
-    else:
-        print(" No saved profile found. Using defaults.")
+    missing_prompt = ask_missing_fields()
+    full_response = f"{welcome_message}\n\n{answer}"
+    if missing_prompt:
+        full_response += f"\n\n{missing_prompt}"
+    return full_response
 
-# Load profile at startup
-load_user_profile()
-
-# ---- LangGraph nodes ----
-def generate_hypothetical_node(state: State) -> State:
-    profile = user_profile
-    flat = profile.get("flat_type")
-
-    # Flat type context handling
-    if flat == "bto":
-        flat_context = "The user is interested in a BTO flat."
-    elif flat == "resale":
-        flat_context = "The user is interested in a resale flat."
-    elif flat == "both":
-        flat_context = (
-            "The user is open to both BTO and resale flats. "
-            "If policies differ, simulate an answer that includes both perspectives."
-        )
-    else:
-        flat_context = (
-            "The user has not specified flat type. "
-            "Please simulate an answer that covers both BTO and resale paths if relevant."
-        )
-
-    # Full profile summary
-    profile_summary = f"""User Profile:
-- Age: {profile.get('age')}
-- Income: {profile.get('income')}
-- Relationship: {profile.get('relationship_status')}
-- Flat Type: {flat or 'unspecified'}
-
-{flat_context}
-"""
-
-    # HyDE generation prompt
-    response = llm.invoke([
-        {"role": "system", "content": f"Generate a hypothetical answer as if it came from a government housing policy document. Use the user's profile below:\n\n{profile_summary}"},
-        {"role": "user", "content": state["question"]}
-    ])
-    
-    state["hypothetical_doc"] = response.content
-    return state
-
-
-
-def retrieve_node(state: State) -> State:
-    hyde_embedding = sentence_model.encode(state["hypothetical_doc"])
-    results = []
-    seen_hashes = set()
-    for node_id, node_data in knowledge_graph.nodes(data=True):
-        if node_data.get('type') != 'document': continue
-        doc_embed = node_data.get('embedding')
-        if doc_embed is None: continue
-        score = cosine_similarity(
-            hyde_embedding.reshape(1, -1), 
-            doc_embed.reshape(1, -1)
-        )[0][0]
-        doc = Document(
-            page_content=node_data.get('content', ''),
-            metadata=node_data.get('metadata', {})
-        )
-        hash_ = hashlib.md5(doc.page_content.encode()).hexdigest()
-        if hash_ not in seen_hashes:
-            results.append((doc, score))
-            seen_hashes.add(hash_)
-    results.sort(key=lambda x: x[1], reverse=True)
-    state["context"] = results[:3]
-    return state
-
-def generate_node(state: State) -> State:
-    context_text = "\n\n".join([doc.page_content for doc, _ in state["context"]])
-    # history = "\n".join(state.get("messages", [])[-5:])
-    history = chat_memory.load_memory_variables({}).get("chat_history", "")
-    
-    # Add profile logic
-    profile = user_profile
-    flat = profile.get("flat_type")
-
-    # Flat type context handling
-    if flat == "bto":
-        flat_context = "The user is interested in a BTO flat."
-    elif flat == "resale":
-        flat_context = "The user is interested in a resale flat."
-    elif flat == "both":
-        flat_context = (
-            "The user is open to both BTO and resale flats. "
-            "If policies differ, explain both options side by side."
-        )
-    else:
-        flat_context = (
-            "The user has not specified BTO or resale. "
-            "If the answer depends on flat type, explain both options clearly."
-        )
-
-    # Full profile summary to include in prompt
-    profile_summary = f"""
-User Profile:
-- Age: {profile.get('age')}
-- Income: {profile.get('income')}
-- Relationship: {profile.get('relationship_status')}
-- Flat Type: {flat or 'unspecified'}
-
-{flat_context}
-"""
-
-    # Prompt messages
-    prompt = [
-        {"role": "system", "content": f"""You are an HDB assistant. Use the following user profile and retrieved documents to answer accurately.
-
-{profile_summary}
-
-Retrieved Context:
-{context_text}
-
-Chat History:
-{history if history else "No prior chat history."}
-""" },
-        {"role": "user", "content": state['question']}
-    ]
-    
-    response = llm.invoke(prompt)
-
-    # Track conversation turn in memory
-    chat_memory.save_context({"input": state["question"]}, {"output": response.content})
-
-    state["answer"] = response.content
-    return state
-
-
-
-def fact_check_answer(answer: str, docs: List, threshold: float = 0.6) -> bool:
-    answer_sentences = [s.strip() for s in answer.split('.') if len(s.strip()) > 10]
-
-    # Gracefully handle both Document and (Document, score)
-    cleaned_docs = [doc[0] if isinstance(doc, tuple) else doc for doc in docs]
-
-    for sentence in answer_sentences:
-        for doc in cleaned_docs:
-            sim = SequenceMatcher(None, sentence.lower(), doc.page_content.lower()).ratio()
-            if sim > threshold:
-                return True
-    return False
-
-
-def fact_check_node(state: State) -> State:
-    answer = state.get("answer", "")
-    docs = [doc[0] if isinstance(doc, tuple) else doc for doc in state.get("context", [])]
-
-    if not fact_check_answer(answer, docs):
-        print("Fact-check failed. Switching to safe RAG answer.")
-
-        context_text = "\n\n".join(doc.page_content for doc in docs)
-
-        # Reuse full user profile in fallback
-        profile = user_profile
-        flat = profile.get("flat_type")
-        if flat == "bto":
-            flat_context = "The user is interested in a BTO flat."
-        elif flat == "resale":
-            flat_context = "The user is interested in a resale flat."
-        elif flat == "both":
-            flat_context = (
-                "The user is open to both BTO and resale options. "
-                "If policies differ, explain both clearly."
-            )
-        else:
-            flat_context = (
-                "The user has not specified flat type. "
-                "If relevant, explain both BTO and resale differences."
-            )
-
-        profile_summary = f"""
-User Profile:
-- Age: {profile.get('age')}
-- Income: {profile.get('income')}
-- Relationship: {profile.get('relationship_status')}
-- Flat Type: {flat or 'unspecified'}
-
-{flat_context}
-"""
-
-        fallback_prompt = [
-            {"role": "system", "content": f"""You are an HDB assistant. Always answer based on the user profile and retrieved documents.
-
-{profile_summary}
-
-Retrieved Context:
-{context_text}
-""" },
-            {"role": "user", "content": state["question"]}
-        ]
-
-        fallback = llm.invoke(fallback_prompt)
-        state["answer"] = fallback.content
-    else:
-        print("Answer passed fact-check.")
-
-    return state
-
-# ---- Build LangGraph ----
-from langgraph.graph import StateGraph
-
-workflow = StateGraph(State)
-workflow.add_node("generate_hypothesis", generate_hypothetical_node)
-workflow.add_node("retrieve", retrieve_node)
-workflow.add_node("generate", generate_node)
-workflow.add_node("fact_check", fact_check_node)
-
-workflow.set_entry_point("generate_hypothesis")
-workflow.add_edge("generate_hypothesis", "retrieve")
-workflow.add_edge("retrieve", "generate")
-workflow.add_edge("generate", "fact_check")
-workflow.set_finish_point("fact_check")
-
-graph = workflow.compile()
-
-import random
-import string
-
-# A dictionary to store user profiles keyed by serial
-user_memory_store = {}
-
-# Generate unique user ID (e.g., 6-char alphanumeric code)
-def generate_user_id(length=6):
-    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
-    
-def check_existing_user():
-    print("Welcome back! If you're a returning user, enter your serial code. Otherwise, press Enter to start fresh.")
-    user_input = input("Serial code: ").strip().upper()
-
-    if user_input and user_input in user_memory_store:
-        print(f"Found your profile with ID {user_input}. Welcome back!")
-        user_profile.update(user_memory_store[user_input])
-        return user_input
-    else:
-        new_id = generate_user_id()
-        print(f"New session started. Your serial code is: {new_id}")
-        print("Save this code to continue later with the same profile. And what do you want to ask?")
-        return new_id
-
-def interactive_chatbot(user_input):
-    # process input and return response string
-    return "some response"
-    
-# ---- Interactive chatbot ----
-chat_history = []
-
-def interactive_chatbot(user_input):  # one input string, returns a response string
-    print("Hello! I'm your HDB eligibility assistant.")
-    session_id = check_existing_user()  # New or returning?
-
-    while True:
-        query = input("\n You: ")
-        if query.lower() in ["exit", "quit"]:
-            # Save user profile
-            user_memory_store[session_id] = user_profile.copy()
-            print(f"Profile saved under ID: {session_id}")
-            print("Goodbye! Use your serial next time to continue.")
-            break
-
-        update_user_profile(query)
-        ask_missing_fields()
-
-        chat_history.append(f"User: {query}")
-
-        result = graph.invoke({
-            "question": query,
-            "hypothetical_doc": None,
-            "context": [],
-            "answer": None,
-            "messages": chat_history
-        })
-
-        answer = result["answer"]
-        chat_history.append(f"Assistant: {answer}")
-
-        print("\n", answer)
-        print(f"\n Current user profile (ID: {session_id}):", user_profile)
