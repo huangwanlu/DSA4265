@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Singapore Housing Eligibility Assistant</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f5f8fc;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    header {
+      background-color: #d92d20;
+      color: white;
+      padding: 16px 24px;
+      font-size: 20px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header img {
+      height: 32px;
+    }
+    #main-container {
+      display: flex;
+      flex: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      gap: 24px;
+    }
+    #chat-container {
+      flex: 3;
+      display: flex;
+      flex-direction: column;
+      background-color: white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .message-wrapper {
+      display: flex;
+      align-items: flex-end;
+      gap: 12px;
+    }
+    .message-wrapper.user {
+      flex-direction: row-reverse;
+    }
+    avatar {
+      height: auto;
+      width: auto;
+      max-height: 100%;
+      max-width: 48px;
+      border-radius: 50%;
+      object-fit: cover;
+      align-self: flex-start;
+    }
+    .message {
+      padding: 12px 16px;
+      border-radius: 16px;
+      max-width: 70%;
+      line-height: 1.5;
+      word-wrap: break-word;
+    }
+    .bot {
+      background-color: #e4e7ec;
+      align-self: flex-start;
+    }
+    .user {
+      background-color: #2563eb;
+      color: white;
+      align-self: flex-end;
+    }
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 0;
+    }
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #666;
+      animation: bounce 1.4s infinite ease-in-out;
+    }
+    .typing-dot:nth-child(1) { animation-delay: 0s; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-5px); }
+    }
+    #input-area {
+      display: flex;
+      gap: 12px;
+    }
+    textarea {
+      flex: 1;
+      padding: 12px;
+      font-size: 16px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      resize: none;
+      line-height: 1.5;
+      overflow-y: hidden;
+      min-height: 40px;
+    }
+    button {
+      background-color: #2563eb;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #faq-sidebar {
+      flex: 1;
+      background-color: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      height: fit-content;
+    }
+    #faq-sidebar h3 {
+      font-size: 18px;
+      margin-bottom: 12px;
+      color: #111827;
+    }
+    .faq-button {
+      padding: 10px 16px;
+      background-color: #f1f5f9;
+      border: none;
+      border-radius: 8px;
+      margin: 6px 0;
+      cursor: pointer;
+      text-align: left;
+      width: 100%;
+    }
+    #lang-selector {
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #d1d5db;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span>🏠 Singapore Housing Eligibility Assistant</span>
+    <select id="lang-selector">
+      <option value="en">English</option>
+      <option value="zh">中文</option>
+      <option value="ms">Bahasa Melayu</option>
+      <option value="ta">தமிழ்</option>
+    </select>
+  </header>
+
+  <div id="main-container">
+    <main id="chat-container">
+      <div id="messages">
+        <div class="message-wrapper bot">
+          <img src="/static/bot-avatar.png" alt="Bot" class="avatar" />
+          <div class="message bot">👋 Hello! I'm your Housing Eligibility Assistant. Let's check if you're eligible to buy a home in Singapore. Start by telling me your <strong>age</strong>, <strong>citizenship</strong>, and <strong>household income</strong>.</div>
+        </div>
+      </div>
+
+      <div id="input-area">
+        <textarea id="user-input" rows="1" placeholder="Type your message here..."></textarea>
+        <button id="send">Send</button>
+      </div>
+    </main>
+
+    <aside id="faq-sidebar">
+      <h3>Frequently Asked Questions</h3>
+      <button class="faq-button">What is the income ceiling?</button>
+      <button class="faq-button">Can a PR buy a resale flat?</button>
+      <button class="faq-button">What is the minimum age?</button>
+      <button class="faq-button">Who qualifies for EC?</button>
+    </aside>
+  </div>
+
+  <script>
+    const messages = document.getElementById("messages");
+    const userInput = document.getElementById("user-input");
+    const sendButton = document.getElementById("send");
+
+    function addMessage(text, type = "bot") {
+      const wrapper = document.createElement("div");
+      wrapper.className = `message-wrapper ${type}`;
+
+      const avatar = document.createElement("img");
+      avatar.className = "avatar";
+      avatar.src = type === "user" ? "/static/user-avatar.png" : "/static/bot-avatar.png";
+      avatar.alt = type === "user" ? "You" : "Bot";
+
+      const bubble = document.createElement("div");
+      bubble.className = `message ${type}`;
+      bubble.textContent = text;
+
+      wrapper.appendChild(avatar);
+      wrapper.appendChild(bubble);
+      messages.appendChild(wrapper);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    function showTyping() {
+      const typing = document.createElement("div");
+      typing.className = "message-wrapper bot";
+      typing.id = "typing-indicator";
+      typing.innerHTML = `
+        <img src="/static/bot-avatar.png" class="avatar" alt="Bot" />
+        <div class="message bot typing-indicator">
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+        </div>
+      `;
+      messages.appendChild(typing);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    function hideTyping() {
+      const typing = document.getElementById("typing-indicator");
+      if (typing) typing.remove();
+    }
+
+    async function sendMessageToServer(message) {
+      const res = await fetch("/get_response", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message })
+      });
+      return await res.json();
+    }
+
+    async function processUserInput() {
+      const text = userInput.value.trim();
+      if (!text) return;
+      addMessage(text, "user");
+      userInput.value = "";
+      showTyping();
+
+      try {
+        const data = await sendMessageToServer(text);
+        hideTyping();
+        addMessage(data.response, "bot");
+      } catch (err) {
+        hideTyping();
+        addMessage("⚠️ Sorry, something went wrong.", "bot");
+        console.error(err);
+      }
+    }
+
+    sendButton.addEventListener("click", processUserInput);
+
+    userInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        processUserInput();
+      }
+    });
+
+    userInput.addEventListener("input", function () {
+      this.style.height = "auto";
+      this.style.height = this.scrollHeight + "px";
+    });
+
+    document.getElementById("lang-selector").addEventListener("change", function () {
+      const lang = this.value;
+      alert(`Language switched to: ${lang.toUpperCase()} (feature coming soon)`);
+    });
+  </script>
+</body>
+</html>
