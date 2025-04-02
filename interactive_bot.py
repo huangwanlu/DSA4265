@@ -16,7 +16,7 @@ import os
 import spacy
 import networkx as nx
 import matplotlib.pyplot as plt
-from langchain.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.docstore.document import Document
 from collections import defaultdict
