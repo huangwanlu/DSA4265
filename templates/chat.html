@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Singapore Housing Eligibility Assistant</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -176,12 +177,7 @@
 
   <div id="main-container">
     <main id="chat-container">
-      <div id="messages">
-        <div class="message-wrapper bot">
-          <img src="/static/bot-avatar.png" alt="Bot" class="avatar" />
-          <div class="message bot">👋 Hello! I'm your Housing Eligibility Assistant. Let's check if you're eligible to buy a home in Singapore. Start by telling me your <strong>age</strong>, <strong>citizenship</strong>, and <strong>household income</strong>.</div>
-        </div>
-      </div>
+      <div id="messages"></div>
 
       <div id="input-area">
         <textarea id="user-input" rows="1" placeholder="Type your message here..."></textarea>
@@ -214,7 +210,7 @@
 
       const bubble = document.createElement("div");
       bubble.className = `message ${type}`;
-      bubble.textContent = text;
+      bubble.innerHTML = marked.parse(text);
 
       wrapper.appendChild(avatar);
       wrapper.appendChild(bubble);
@@ -287,6 +283,14 @@
     document.getElementById("lang-selector").addEventListener("change", function () {
       const lang = this.value;
       alert(`Language switched to: ${lang.toUpperCase()} (feature coming soon)`);
+    });
+
+    // Auto show intro message from Flask
+    window.addEventListener("DOMContentLoaded", function () {
+      const intro = {{ intro_message|tojson }};
+      if (intro) {
+        addMessage(intro, "bot");
+      }
     });
   </script>
 </body>

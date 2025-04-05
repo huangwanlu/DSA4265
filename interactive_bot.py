@@ -17,6 +17,7 @@ import spacy
 import networkx as nx
 import matplotlib.pyplot as plt
 from langchain_community.document_loaders import PyPDFLoader
+import pdfplumber
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.docstore.document import Document
 from collections import defaultdict
@@ -25,24 +26,67 @@ from networkx.algorithms.community import modularity_max
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 
+
+# === New Function: Extract Headings from PDF ===
+def extract_headings_from_pdf(pdf_path):
+    headings = []
+    with pdfplumber.open(pdf_path) as pdf:
+        for i, page in enumerate(pdf.pages):
+            words = page.extract_words(extra_attrs=["size", "fontname"])
+            for word in words:
+                if word["size"] >= 14 or "Bold" in word["fontname"]:
+                    text = word["text"].strip()
+                    if len(text) > 3:
+                        headings.append({
+                            "page": i,
+                            "text": text,
+                            "size": word["size"],
+                            "font": word["fontname"]
+                        })
+    return headings
+
+# === New Function: Match Heading to Policy Track ===
+def infer_policy_track_from_heading(heading):
+    heading = heading.lower()
+    if "single" in heading and "bto" in heading:
+        return "bto_singles"
+    elif "couple" in heading and "bto" in heading:
+        return "bto_couples"
+    elif "single" in heading and "resale" in heading:
+        return "resale_singles"
+    elif "couple" in heading and "resale" in heading:
+        return "resale_couples"
+    elif "grant" in heading:
+        return "grants"
+    elif "loan" in heading:
+        return "loan_eligibility"
+    return "unknown"
+
 # Load NLP model and sentence transformer model
 nlp = spacy.load("en_core_web_sm")
 sentence_model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
 
 # Step 1: Load Documents with Metadata Preservation
 
-folder_path = "D:/LECTURE/Y4S2/DSA4265/DSA4265/HDB_docs"  # put your own file path to the HDB docs
+# === Load and Tag Documents with pdfplumber Layout Awareness ===
+folder_path = "D:/LECTURE/Y4S2/DSA4265/DSA4265/HDB_docs"
 all_docs = []
 
 for filename in os.listdir(folder_path):
     if filename.endswith(".pdf"):
         file_path = os.path.join(folder_path, filename)
+        heading_list = extract_headings_from_pdf(file_path)
+        heading_map = {item["page"]: infer_policy_track_from_heading(item["text"]) for item in heading_list}
+
         loader = PyPDFLoader(file_path)
         docs = loader.load()
 
-        # Add source metadata to all pages
         for doc in docs:
-            doc.metadata['source'] = file_path  # Ensure source is preserved
+            page_num = doc.metadata.get("page", 0)
+            heading = heading_map.get(page_num, "")
+            policy_track = infer_policy_track_from_heading(heading)
+            doc.metadata["source"] = file_path
+            doc.metadata["policy_track"] = policy_track
         all_docs.extend(docs)
 
 # Step 2: Text Chunking with Metadata Inheritance
@@ -55,8 +99,8 @@ text_splitter = RecursiveCharacterTextSplitter(
 )
 all_splits = text_splitter.split_documents(all_docs)
 
-# Verify metadata in splits
-print("Sample chunk metadata:", all_splits[0].metadata)
+# # Verify metadata in splits
+# print("Sample chunk metadata:", all_splits[0].metadata)
 
 # Step 3: Entity Extraction with Coreference Resolution
 def extract_entities(text):
@@ -73,13 +117,17 @@ def extract_entities(text):
 def extract_relationships(chunks):
     relations = []
     for chunk in chunks:
-        entities = list(extract_entities(chunk.page_content).keys())
-        # Create bidirectional relationships with context
+        text = chunk.page_content if hasattr(chunk, "page_content") else str(chunk)
+        entities = list(extract_entities(text).keys())
+
         for i in range(len(entities)):
-            for j in range(i+1, len(entities)):
-                relations.append((entities[i], "related_to", entities[j]))
-                relations.append((entities[j], "related_to", entities[i]))  # Bidirectional
+            for j in range(i + 1, len(entities)):
+                source = entities[i]
+                target = entities[j]
+                relations.append((source, "related_to", target))
+                relations.append((target, "related_to", source))  # bidirectional
     return relations
+
 
 # Step 5: Knowledge Graph Construction with Full Metadata
 knowledge_graph = nx.DiGraph()
@@ -196,7 +244,11 @@ user_profile = {
     "income": None,
     "flat_type": None,
     "relationship_status": None,
+    "partner_age": None,
+    "partner_income": None,
+    "partner_citizenship": None
 }
+
 user_memory_store = {}
 chat_history = []
 chat_memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
@@ -212,21 +264,38 @@ class State(TypedDict):
 
 # --- User Profile Utilities ---
 def extract_age(query: str):
-    match = re.search(r'\b(?:i am|i’m|im)?\s*(\d{2})\s*(?:years old|y/o|yo|yrs)?\b', query.lower())
+    q = query.lower()
+    if "partner" in q:
+        return None
+    match = re.search(r'\b(?:i am|i’m|im)?\s*(\d{2})\s*(?:years old|y/o|yo|yrs)?\b', q)
     return int(match.group(1)) if match else None
 
+
 def extract_income(query: str):
+    q = query.lower()
+
+    # If it's referring to partner, skip extracting user income
+    if "partner" in q:
+        return None
+
     match = re.search(r'\$?\s?(\d{3,5})', query)
     return int(match.group(1)) if match else None
 
+
 def extract_relationship(query: str):
     q = query.lower()
-    if any(w in q for w in ["fiance", "fiancée"]): return "fiance"
+    if any(phrase in q for phrase in [
+        "my girlfriend", "my boyfriend", "fiance", "fiancée", "fiancé",
+        "partner", "applying together", "we are applying", "with my partner", "applying with"
+    ]):
+        return "fiance"
+
     if any(w in q for w in ["married", "spouse", "wife", "husband"]): return "married"
     if "divorced" in q: return "divorced"
     if "widowed" in q or "orphan" in q: return "widowed"
     if "single" in q: return "single"
     return None
+
 
 def extract_flat_type(query: str):
     q = query.lower()
@@ -235,6 +304,61 @@ def extract_flat_type(query: str):
     if "bto" in q: return "bto"
     if "resale" in q: return "resale"
     return None
+    
+def extract_partner_info(query: str):
+    q = query.lower()
+    partner = {}
+
+    # Match income
+    income_match = re.search(r'(?:my\s+)?partner(?:\'s)?\s+(?:income|earnings|salary)?\s*(?:is|earns|earning|makes)?\s*\$?(\d{3,5})', q)
+    
+    # Match age
+    age_match = re.search(r'(?:my\s+)?partner(?:\'s)?\s+age\s*(?:is)?\s*(\d{2})', q)
+
+    # Match citizenship
+    citizenship_match = re.search(r'(?:my\s+)?partner.*?(singapore citizen|citizen|pr|permanent resident|foreigner|non[-\s]?resident)', q)
+
+    if age_match:
+        partner["age"] = int(age_match.group(1))
+    if income_match:
+        partner["income"] = int(income_match.group(1))
+    if citizenship_match:
+        c = citizenship_match.group(1).strip().lower()
+        if "pr" in c or "permanent" in c:
+            partner["citizenship"] = "PR"
+        elif "citizen" in c:
+            partner["citizenship"] = "Singaporean"
+        elif "foreigner" in c or "non" in c:
+            partner["citizenship"] = "foreigner"
+
+    return partner
+
+def format_user_profile():
+    user_lines = ["👤 You:"]
+    partner_lines = []
+
+    # Group user vs partner info
+    for key, value in user_profile.items():
+        if value is None:
+            continue
+
+        label = key.replace("_", " ").capitalize()
+
+        if key.startswith("partner_"):
+            partner_lines.append(f"- {label.replace('Partner ', '')}: {value}")
+        else:
+            user_lines.append(f"- {label}: {value}")
+
+    if len(user_lines) == 1:
+        user_lines.append("⚠️ No user information provided yet.")
+
+    if partner_lines:
+        user_lines.append("\n🧑‍🤝‍🧑 Partner:")
+        user_lines.extend(partner_lines)
+
+    return "\n".join(user_lines)
+
+
 
 def update_user_profile(query: str):
     user_profile["age"] = extract_age(query) or user_profile["age"]
@@ -242,15 +366,72 @@ def update_user_profile(query: str):
     user_profile["relationship_status"] = extract_relationship(query) or user_profile["relationship_status"]
     user_profile["flat_type"] = extract_flat_type(query) or user_profile["flat_type"]
 
+    # Update partner fields
+    partner = extract_partner_info(query)
+
+    user_profile["partner_age"] = partner.get("age") or user_profile.get("partner_age")
+    user_profile["partner_income"] = partner.get("income") or user_profile.get("partner_income")
+    user_profile["partner_citizenship"] = partner.get("citizenship") or user_profile.get("partner_citizenship")
+
+
+
+def was_prompt_already_asked(field_key: str):
+    question_keywords = {
+        "age": ["your age", "how old are you"],
+        "income": ["your income", "how much do you earn"],
+        "relationship_status": ["your relationship status", "are you single"],
+        "flat_type": ["bto or resale", "what flat type"],
+        "partner_age": ["your partner's age"],
+        "partner_income": ["your partner's income"],
+        "partner_citizenship": ["your partner a citizen", "partner's citizenship"]
+    }
+    asked = any(
+        any(keyword in message.lower() for keyword in question_keywords[field_key])
+        for message in chat_history if isinstance(message, str)
+    )
+    return asked
+
 def ask_missing_fields():
-    prompts = {
+    prompts = []
+
+    # Always ask these if missing
+    base_fields = {
         "age": " What is your age? ",
         "income": " What is your monthly income? ",
         "relationship_status": " What is your relationship status? ",
         "flat_type": " Are you interested in a BTO or resale flat? ",
     }
-    follow_up_questions = [prompt for key, prompt in prompts.items() if not user_profile[key]]
-    return " ".join(follow_up_questions) if follow_up_questions else ""
+
+    for key, question in base_fields.items():
+        if not user_profile.get(key) and not was_prompt_already_asked(key):
+            prompts.append(question)
+
+
+    # Add partner info only if relationship and flat_type support it
+    flat = user_profile.get("flat_type", "").lower()
+    if user_profile.get("relationship_status") == "fiance" and flat in ["bto", "resale", "both"]:
+        partner_fields = {
+            "partner_age": " What is your partner's age?",
+            "partner_income": " What is your partner's monthly income?",
+            "partner_citizenship": " Is your partner a Singapore Citizen, PR, or foreigner?"
+        }
+        for key, question in partner_fields.items():
+            if not user_profile.get(key):
+                prompts.append(question)
+
+    return " ".join(prompts)
+
+
+
+def format_answer_nicely(text):
+    import re
+    # Break after numbers like "1.", "2.", etc.
+    text = re.sub(r"(?<!\n)(\d\.)", r"\n\n\1", text)
+    # Convert bullet symbols to consistent dot bullets
+    text = re.sub(r"\n[\*\-] ", r"\n• ", text)
+    # Compact multiple newlines
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    return text.strip()
 
 def save_user_profile():
     with open(PROFILE_PATH, "w") as f:
@@ -281,9 +462,13 @@ def generate_hypothetical_node(state: State) -> State:
 - Income: {profile.get('income')}
 - Relationship: {profile.get('relationship_status')}
 - Flat Type: {flat or 'unspecified'}
+- Partner Age: {profile.get('partner_age')}
+- Partner Income: {profile.get('partner_income')}
+- Partner Citizenship: {profile.get('partner_citizenship')}
 
 {flat_context}
 """
+
 
     system_prompt = f"""Generate a hypothetical answer from a government housing policy document. Use the user's profile below:
 
@@ -311,6 +496,7 @@ def retrieve_node(state: State) -> State:
         if hash_ not in seen_hashes:
             results.append((doc, score))
             seen_hashes.add(hash_)
+    results = [(doc, score) for doc, score in results if score > 0.65]
     results.sort(key=lambda x: x[1], reverse=True)
     state["context"] = results[:3]
     return state
@@ -323,32 +509,53 @@ def generate_node(state: State) -> State:
     flat = profile.get("flat_type")
     flat_context = "The user is interested in " + (flat if flat else "unspecified") + " flats."
 
-    profile_summary = f"""
-User Profile:
-- Age: {profile.get('age')}
-- Income: {profile.get('income')}
-- Relationship: {profile.get('relationship_status')}
-- Flat Type: {flat or 'unspecified'}
+    relationship_note = ""
+    if profile.get("relationship_status") == "fiance":
+        relationship_note = "Note: The user is currently unmarried but is applying with their partner, which qualifies them under the Fiancé/Fiancée Scheme (min age 21)."
 
-{flat_context}
-"""
+    profile_summary = f"""
+    User Profile:
+    - Age: {profile.get('age')}
+    - Income: {profile.get('income')}
+    - Relationship Status: {profile.get('relationship_status')}
+    - Flat Type: {flat or 'unspecified'}
+
+    {flat_context}
+    {relationship_note}
+    """
+
 
     prompt = [
-        {"role": "system", "content": f"""You are an HDB assistant. Use the following user profile and retrieved documents to answer.
+        {
+  "role": "system",
+  "content": f"""You are an HDB eligibility assistant. Use the user profile and retrieved documents below to answer the user's question.
 
 {profile_summary}
 
-Retrieved Context:
+📌 Notes:
+- Do not reject users from BTO eligibility just because they identify as "single" — they may be applying under the Fiancé/Fiancée Scheme if mentioned.
+- Only base your answer on the retrieved documents and known profile. Do not assume unknown values.
+- If key information is missing, mention what’s needed next to confirm eligibility.
+- Do not hallucinate schemes or make up rules.
+
+📋 Formatting instructions:
+- Structure your answer in clear paragraphs or bullet points.
+- Separate sections by eligibility paths (e.g., Singles Scheme, Fiancé/Fiancée Scheme).
+- Only list paths that may apply based on current info.
+- Keep answers concise if data is incomplete.
+
+📚 Retrieved Context:
 {context_text}
 
-Chat History:
+💬 Chat History:
 {history if history else "No prior chat history."}
-""" },
+"""
+},
         {"role": "user", "content": state["question"]}
     ]
     response = llm.invoke(prompt)
     chat_memory.save_context({"input": state["question"]}, {"output": response.content})
-    state["answer"] = response.content
+    state["answer"] = format_answer_nicely(response.content)
     return state
 
 def fact_check_answer(answer: str, docs: List, threshold: float = 0.6) -> bool:
@@ -401,9 +608,79 @@ workflow.add_edge("generate", "fact_check")
 workflow.set_finish_point("fact_check")
 graph = workflow.compile()
 
-# ---- Final Chatbot Interface ----
+from flask import session
+
 def interactive_chatbot(user_input, serial_code=None):
-    session_id = str(uuid.uuid4())[:8] if not serial_code else serial_code.upper()
+    lower_input = user_input.strip().lower()
+    if any(phrase in lower_input for phrase in ["show profile", "profile info", "my profile", "what do you know about me", "current profile", "show my info"]):
+        return format_user_profile()
+        
+    global chat_history, user_profile
+
+    # Handle page load intro
+    if user_input.strip() == "__init__":
+        session_id = serial_code or str(uuid.uuid4())[:8]
+        session["session_id"] = session_id  # <-- Add this
+        chat_history.clear()
+        return (
+            f"👋 Hi! I'm your HDB eligibility assistant.\n\n"
+            f"🆔 Your session ID is: {session_id}\n\n"
+            "To get started, please tell me:\n"
+            "• Your age\n"
+            "• Your citizenship\n"
+            "• Your monthly income\n"
+            "• Your relationship status (single, married, etc.)\n"
+            "• Whether you're interested in a BTO or resale flat"
+        )
+
+    # Handle reset command
+    reset_phrases = ["reset", "start over", "new session", "restart", "begin again", "fresh start"]
+    if any(phrase in user_input.lower() for phrase in reset_phrases):
+        old_session_id = serial_code or str(uuid.uuid4())[:8]
+
+        # Archive current session
+        archive_path = f"session_{old_session_id}.json"
+        with open(archive_path, "w") as f:
+            json.dump({
+                "session_id": old_session_id,
+                "chat_history": chat_history,
+                "user_profile": user_profile
+            }, f, indent=2)
+
+        # Generate and store new session ID
+        new_session_id = str(uuid.uuid4())[:8]
+        session["session_id"] = new_session_id  
+
+        # Reset state
+        chat_history.clear()
+        user_profile = {
+            "age": None,
+            "income": None,
+            "flat_type": None,
+            "relationship_status": None,
+            "partner_age": None,
+            "partner_income": None,
+            "partner_citizenship": None
+        }
+
+
+        # Return fresh intro message with new ID
+        intro_msg = (
+            f"🔄 Session has been reset and archived. Let's start fresh!\n\n"
+            f"👋 Hi! I'm your HDB eligibility assistant.\n\n"
+            f"🆔 Your new session ID is: {new_session_id}\n\n"
+            "To get started, please tell me:\n"
+            "• Your age\n"
+            "• Your citize\n"
+            "• Your monthly income\n"
+            "• Your relationship status (single, married, etc.)\n"
+            "• Whether you're interested in a BTO or resale flat"
+        )
+        return intro_msg
+
+
+    # Use existing session
+    session_id = serial_code or str(uuid.uuid4())[:8]
     update_user_profile(user_input)
     save_user_profile()
 
@@ -416,9 +693,10 @@ def interactive_chatbot(user_input, serial_code=None):
         "messages": chat_history
     })
 
-    answer = result["answer"]
-    chat_history.append(f"Assistant: {answer}")
+    answer = format_answer_nicely(result["answer"])  # Apply formatting
+    if len(chat_history) <= 2:
+        answer = f"🆔 Your session ID is: {session_id}\n\n{answer}"
 
+    chat_history.append(f"Assistant: {answer}")
     missing = ask_missing_fields()
-    welcome = f"Welcome! Your session ID is: {session_id}."
-    return f"{welcome}\n\n{answer}\n\n{missing}" if missing else f"{welcome}\n\n{answer}"
+    return f"{answer}\n\n{missing}" if missing else answer
