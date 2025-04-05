@@ -4,8 +4,8 @@ from interactive_bot import interactive_chatbot  # Import your actual chatbot lo
 app = Flask(__name__)
 
 
-def get_bot_response(user_input):
-    return interactive_chatbot(user_input)
+def get_bot_response(user_input, session_id=None):
+    return interactive_chatbot(user_input, serial_code=session_id)
 
 @app.route("/")
 def home():
@@ -14,7 +14,8 @@ def home():
 @app.route("/get_response", methods=["POST"])
 def get_response():
     user_input = request.json.get("message")
-    bot_response = get_bot_response(user_input)
+    session_id = request.json.get("session_id")  # 👈 expect session_id from frontend
+    bot_response = get_bot_response(user_input, session_id)
     return jsonify({"response": bot_response})
 
 if __name__ == "__main__":

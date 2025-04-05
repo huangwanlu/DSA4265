@@ -31,7 +31,7 @@ sentence_model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
 
 # Step 1: Load Documents with Metadata Preservation
 
-folder_path = "D:/LECTURE/Y4S2/DSA4265/DSA4265/HDB_docs"  # put your own file path to the HDB docs
+folder_path = "/Users/gaoyuchen/Desktop/DSA4265/HDB_docs"  # put your own file path to the HDB docs
 all_docs = []
 
 for filename in os.listdir(folder_path):
@@ -421,4 +421,8 @@ def interactive_chatbot(user_input, serial_code=None):
 
     missing = ask_missing_fields()
     welcome = f"Welcome! Your session ID is: {session_id}."
-    return f"{welcome}\n\n{answer}\n\n{missing}" if missing else f"{welcome}\n\n{answer}"
+    return (
+    f"{welcome}\n"
+    f"{answer.strip()}\n"
+    f"{missing.strip()}" if missing else f"{welcome}\n{answer.strip()}"
+)

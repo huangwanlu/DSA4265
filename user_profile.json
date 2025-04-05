@@ -1,6 +1,6 @@
 {
-  "age": 27,
-  "income": 3200,
-  "flat_type": "both",
-  "relationship_status": "single"
+  "age": null,
+  "income": null,
+  "flat_type": null,
+  "relationship_status": null
 }

@@ -186,6 +186,7 @@
       <div id="input-area">
         <textarea id="user-input" rows="1" placeholder="Type your message here..."></textarea>
         <button id="send">Send</button>
+        <button onclick="resetSession()" style="background-color: #e5e7eb; color: #111827;">Reset</button>
       </div>
     </main>
 
@@ -200,9 +201,25 @@
 
   <script>
     const messages = document.getElementById("messages");
+  
+    // ✅ Session ID setup
+    if (!localStorage.getItem("session_id")) {
+      const newId = Math.random().toString(36).substring(2, 10).toUpperCase();
+      localStorage.setItem("session_id", newId);
+    }
+   
+  
+    // ✅ Reset session function
+    function resetSession() {
+      const newSessionId = Math.random().toString(36).substring(2, 10).toUpperCase();
+      localStorage.setItem("session_id", newSessionId);
+      document.getElementById("messages").innerHTML = "";  // clear chat UI
+      addMessage("🔄 Session reset. You may start a new conversation.👋 Hello! I'm your Housing Eligibility Assistant. Let's check if you're eligible to buy a home in Singapore. Start by telling me your age, citizenship, and household income.", "bot");
+    }
+  
+    // ✅ Your other variables and functions
     const userInput = document.getElementById("user-input");
     const sendButton = document.getElementById("send");
-
     function addMessage(text, type = "bot") {
       const wrapper = document.createElement("div");
       wrapper.className = `message-wrapper ${type}`;
@@ -244,13 +261,13 @@
     }
 
     async function sendMessageToServer(message) {
+      const currentSessionId = localStorage.getItem("session_id");
       const res = await fetch("/get_response", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message })
-      });
-      return await res.json();
-    }
+        body: JSON.stringify({ message, session_id: currentSessionId })  // ✅ fixed here
+        });
+        return await res.json();}
 
     async function processUserInput() {
       const text = userInput.value.trim();
