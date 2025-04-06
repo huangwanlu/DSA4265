@@ -4,7 +4,6 @@ import uuid
 
 app = Flask(__name__)
 app.secret_key = "super_secret_key"  # Required for session support
-
 # Generate or reuse session ID
 def get_session_id():
     if "session_id" not in session:
@@ -16,7 +15,7 @@ def get_bot_response(user_input):
     session_id = get_session_id()
     return interactive_chatbot(user_input, serial_code=session_id)
 
-# ✅ Updated: Render intro message on page load
+# Updated: Render intro message on page load
 @app.route("/")
 def home():
     session_id = get_session_id()

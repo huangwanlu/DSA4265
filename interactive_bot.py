@@ -1,5 +1,30 @@
-from dotenv import load_dotenv
+import hashlib
+import json
+import matplotlib.pyplot as plt
+import networkx as nx
+import numpy as np
 import os
+import pdfplumber
+import random
+import re
+import spacy
+import string
+import uuid
+from collections import defaultdict
+from difflib import SequenceMatcher
+from dotenv import load_dotenv
+from flask import session
+from langchain_community.document_loaders import PyPDFLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.docstore.document import Document
+from langchain.memory import ConversationBufferMemory
+from langchain_core.documents import Document
+from langgraph.graph import StateGraph
+from networkx.algorithms.community import modularity_max
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
+from typing import List, Tuple, Optional, TypedDict
+
 
 load_dotenv()
 
@@ -9,22 +34,6 @@ if not os.environ.get("LANGSMITH_API_KEY") or not os.environ.get("GROQ_API_KEY")
 
 from langchain.chat_models import init_chat_model
 llm = init_chat_model("llama3-8b-8192", model_provider="groq")
-
-
-
-import os
-import spacy
-import networkx as nx
-import matplotlib.pyplot as plt
-from langchain_community.document_loaders import PyPDFLoader
-import pdfplumber
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.docstore.document import Document
-from collections import defaultdict
-from sentence_transformers import SentenceTransformer
-from networkx.algorithms.community import modularity_max
-from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
 
 
 # === New Function: Extract Headings from PDF ===
@@ -44,6 +53,7 @@ def extract_headings_from_pdf(pdf_path):
                             "font": word["fontname"]
                         })
     return headings
+
 
 # === New Function: Match Heading to Policy Track ===
 def infer_policy_track_from_heading(heading):
@@ -99,8 +109,6 @@ text_splitter = RecursiveCharacterTextSplitter(
 )
 all_splits = text_splitter.split_documents(all_docs)
 
-# # Verify metadata in splits
-# print("Sample chunk metadata:", all_splits[0].metadata)
 
 # Step 3: Entity Extraction with Coreference Resolution
 def extract_entities(text):
@@ -112,6 +120,7 @@ def extract_entities(text):
             clean_ent = ent.text.strip().replace('\n', ' ')
             entities[clean_ent] = ent.label_
     return entities
+
 
 # Step 4: Relationship Extraction with Context Awareness
 def extract_relationships(chunks):
@@ -182,9 +191,11 @@ for chunk in all_splits:
                 weight=1.0
             )
 
+
 # Step 6: Community Detection with Enhanced Visualization
 def detect_communities():
     return list(nx.algorithms.community.louvain_communities(knowledge_graph))
+
 
 def visualize_graph():
     plt.figure(figsize=(16, 12))
@@ -212,21 +223,6 @@ def visualize_graph():
 # if len(knowledge_graph.nodes) > 0:
 #     visualize_graph()
 
-import os
-import re
-import json
-import uuid
-import hashlib
-import random
-import string
-from typing import List, Tuple, Optional, TypedDict
-from difflib import SequenceMatcher
-from collections import defaultdict
-from sklearn.metrics.pairwise import cosine_similarity
-
-from langchain.memory import ConversationBufferMemory
-from langchain_core.documents import Document
-from langgraph.graph import StateGraph
 
 # Placeholder: Replace with your actual model imports
 # Example:
@@ -254,6 +250,7 @@ chat_history = []
 chat_memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 PROFILE_PATH = "user_profile.json"
 
+
 # --- LangGraph State Definition ---
 class State(TypedDict):
     question: str
@@ -261,6 +258,7 @@ class State(TypedDict):
     context: List[Tuple[Document, float]]
     answer: Optional[str]
     messages: List[str]
+
 
 # --- User Profile Utilities ---
 def extract_age(query: str):
@@ -305,6 +303,7 @@ def extract_flat_type(query: str):
     if "resale" in q: return "resale"
     return None
     
+
 def extract_partner_info(query: str):
     q = query.lower()
     partner = {}
@@ -333,6 +332,7 @@ def extract_partner_info(query: str):
 
     return partner
 
+
 def format_user_profile():
     user_lines = ["👤 You:"]
     partner_lines = []
@@ -359,7 +359,6 @@ def format_user_profile():
     return "\n".join(user_lines)
 
 
-
 def update_user_profile(query: str):
     user_profile["age"] = extract_age(query) or user_profile["age"]
     user_profile["income"] = extract_income(query) or user_profile["income"]
@@ -372,7 +371,6 @@ def update_user_profile(query: str):
     user_profile["partner_age"] = partner.get("age") or user_profile.get("partner_age")
     user_profile["partner_income"] = partner.get("income") or user_profile.get("partner_income")
     user_profile["partner_citizenship"] = partner.get("citizenship") or user_profile.get("partner_citizenship")
-
 
 
 def was_prompt_already_asked(field_key: str):
@@ -390,6 +388,7 @@ def was_prompt_already_asked(field_key: str):
         for message in chat_history if isinstance(message, str)
     )
     return asked
+
 
 def ask_missing_fields():
     prompts = []
@@ -422,7 +421,6 @@ def ask_missing_fields():
     return " ".join(prompts)
 
 
-
 def format_answer_nicely(text):
     import re
     # Break after numbers like "1.", "2.", etc.
@@ -433,15 +431,18 @@ def format_answer_nicely(text):
     text = re.sub(r'\n{3,}', '\n\n', text)
     return text.strip()
 
+
 def save_user_profile():
     with open(PROFILE_PATH, "w") as f:
         json.dump(user_profile, f, indent=2)
+
 
 def load_user_profile():
     global user_profile
     if os.path.exists(PROFILE_PATH):
         with open(PROFILE_PATH, "r") as f:
             user_profile.update(json.load(f))
+
 
 # --- LangGraph Nodes ---
 def generate_hypothetical_node(state: State) -> State:
@@ -482,6 +483,7 @@ def generate_hypothetical_node(state: State) -> State:
     state["hypothetical_doc"] = response.content
     return state
 
+
 def retrieve_node(state: State) -> State:
     hyde_embedding = sentence_model.encode(state["hypothetical_doc"])
     results = []
@@ -500,6 +502,7 @@ def retrieve_node(state: State) -> State:
     results.sort(key=lambda x: x[1], reverse=True)
     state["context"] = results[:3]
     return state
+
 
 def generate_node(state: State) -> State:
     context_text = "\n\n".join([doc.page_content for doc, _ in state["context"]])
@@ -558,6 +561,7 @@ def generate_node(state: State) -> State:
     state["answer"] = format_answer_nicely(response.content)
     return state
 
+
 def fact_check_answer(answer: str, docs: List, threshold: float = 0.6) -> bool:
     sentences = [s.strip() for s in answer.split('.') if len(s.strip()) > 10]
     cleaned_docs = [doc[0] if isinstance(doc, tuple) else doc for doc in docs]
@@ -567,6 +571,7 @@ def fact_check_answer(answer: str, docs: List, threshold: float = 0.6) -> bool:
             if sim > threshold:
                 return True
     return False
+
 
 def fact_check_node(state: State) -> State:
     answer = state.get("answer", "")
@@ -608,7 +613,6 @@ workflow.add_edge("generate", "fact_check")
 workflow.set_finish_point("fact_check")
 graph = workflow.compile()
 
-from flask import session
 
 def interactive_chatbot(user_input, serial_code=None):
     lower_input = user_input.strip().lower()
