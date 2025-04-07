@@ -21,6 +21,9 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # Copy the source code into the container.
 COPY . .
 
+# Copy the .env file into the container
+COPY .env .env
+
 # Expose the port that the application listens on.
 EXPOSE 8000
 
