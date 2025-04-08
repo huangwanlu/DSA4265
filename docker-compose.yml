@@ -5,8 +5,10 @@ services:
     build:
       context: .
       dockerfile: interactive_bot_Dockerfile  # Backend service
+    expose: 
+      - "8000"
     ports:
-      - "5001:5000"  # Backend on port 5001 (internally on 5000)
+      - "8000:8000"  
     container_name: my_backend_container
     networks:
       - custom_network
@@ -15,8 +17,10 @@ services:
     build:
       context: .
       dockerfile: frontend_Dockerfile  # Frontend service
+    expose: 
+      - "5001"
     ports:
-      - "5001:5000"  # Frontend on port 5000
+      - "5001:5001" 
     depends_on:
       - backend  # Make sure the backend starts first
     container_name: my_frontend_container

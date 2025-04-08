@@ -10,6 +10,6 @@ COPY interactive_bot.py /app/
 
 COPY HDB_docs /app/HDB_docs/
 
-EXPOSE 5000
+EXPOSE 8000
 
 # CMD ["python", "interactive_bot.py"]
