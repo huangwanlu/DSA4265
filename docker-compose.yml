@@ -1,0 +1,30 @@
+version: "3"
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: interactive_bot_Dockerfile  # Backend service
+    ports:
+      - "5001:5000"  # Backend on port 5001 (internally on 5000)
+    container_name: my_backend_container
+    networks:
+      - custom_network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend_Dockerfile  # Frontend service
+    ports:
+      - "5001:5000"  # Frontend on port 5000
+    depends_on:
+      - backend  # Make sure the backend starts first
+    container_name: my_frontend_container
+    networks:
+      - custom_network
+    env_file:
+      - .env 
+
+networks:
+  custom_network:
+    driver: bridge
