@@ -1,9 +1,9 @@
 {
   "age": 25,
-  "income": 3500,
+  "income": 4000,
   "flat_type": "bto",
-  "relationship_status": "fiance",
-  "partner_age": 24,
-  "partner_income": null,
-  "partner_citizenship": "PR"
+  "relationship_status": "single",
+  "partner_age": 25,
+  "partner_income": 4000,
+  "partner_citizenship": "Singaporean"
 }

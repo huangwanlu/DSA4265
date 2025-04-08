@@ -56,6 +56,8 @@
       display: flex;
       flex-direction: column;
       gap: 16px;
+      max-height: none; /* ensure it’s not cutting height */
+      overflow-wrap: break-word;
     }
     .message-wrapper {
       display: flex;
@@ -78,8 +80,9 @@
       padding: 12px 16px;
       border-radius: 16px;
       max-width: 70%;
-      line-height: 1.5;
+      line-height: 1.6;
       word-wrap: break-word;
+      white-space: pre-wrap; /* <-- ensures line breaks & long lines display */
     }
     .bot {
       background-color: #e4e7ec;
@@ -210,7 +213,7 @@
 
       const bubble = document.createElement("div");
       bubble.className = `message ${type}`;
-      bubble.innerHTML = marked.parse(text);
+      bubble.innerHTML = text.replace(/\n/g, "<br>");
 
       wrapper.appendChild(avatar);
       wrapper.appendChild(bubble);
