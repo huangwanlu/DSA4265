@@ -265,18 +265,33 @@ class State(TypedDict):
     answer: Optional[str]
     messages: List[str]
 
+import ast
+
 def extract_user_profile_info_with_llm(query: str) -> dict:
-    system_prompt = """You are a chatbot extracting housing eligibility information from the user.
-Extract and return a Python dictionary with any of these fields if mentioned:
+    system_prompt = """You are an assistant that extracts housing eligibility details from user messages.
+Return a Python dictionary containing only fields that are explicitly stated or clearly implied.
+
+Extract any of the following if mentioned:
 - 'age': int
 - 'income': int
 - 'relationship_status': one of ['single', 'married', 'fiance', 'divorced', 'widowed']
 - 'flat_type': one of ['bto', 'resale', 'both']
 - 'partner_age': int
 - 'partner_income': int
-- 'partner_citizenship': string
+- 'partner_citizenship': 'Singaporean', 'PR', or 'foreigner'
 
-Only include fields explicitly stated or clearly implied. Do NOT assume values. Respond ONLY with a valid Python dict."""
+Examples:
+User: I’m 25, my income is 4000, applying with my girlfriend for a BTO.
+Output: {'age': 25, 'income': 4000, 'relationship_status': 'fiance', 'flat_type': 'bto'}
+
+User: My partner is a PR earning 3500, and I'm single.
+Output: {'relationship_status': 'single', 'partner_income': 3500, 'partner_citizenship': 'PR'}
+
+User: I'm 27, she’s 25 and we're applying for resale.
+Output: {'age': 27, 'partner_age': 25, 'relationship_status': 'fiance', 'flat_type': 'resale'}
+
+Respond ONLY with a Python dictionary (no explanation).
+"""
 
     response = llm.invoke([
         {"role": "system", "content": system_prompt},
@@ -284,9 +299,10 @@ Only include fields explicitly stated or clearly implied. Do NOT assume values. 
     ])
 
     try:
-        return eval(response.content) if isinstance(response.content, str) else response.content
+        return ast.literal_eval(response.content.strip())
     except Exception:
         return {}
+
 
 # # --- User Profile Utilities ---
 # def extract_age(query: str):
@@ -360,26 +376,36 @@ Only include fields explicitly stated or clearly implied. Do NOT assume values. 
 
     # return partner
 
+import ast
+
 def extract_partner_info_with_llm(query: str) -> dict:
-    system_prompt = """You are an assistant extracting information about the user's partner for housing eligibility.
-Return a dictionary with these optional keys:
-- 'partner_age': integer
-- 'partner_income': integer
-- 'partner_citizenship': string (one of: 'Singaporean', 'PR', 'foreigner')
+    system_prompt = """You are an assistant extracting partner-related details from the user's message for a housing eligibility chatbot.
 
-If a field is not mentioned, omit it. Use only what’s explicitly stated in the input.
-Respond only with a valid Python dictionary. No explanation needed."""
+Only return the following fields **if mentioned or strongly implied**:
+- 'partner_age': int
+- 'partner_income': int
+- 'partner_citizenship': one of ['Singaporean', 'PR', 'foreigner']
 
-    prompt = [
+Examples:
+User: My fiancée is 24 and earns $3500. She's Singaporean.
+Output: {'partner_age': 24, 'partner_income': 3500, 'partner_citizenship': 'Singaporean'}
+
+User: My girlfriend is 25 and she’s a PR.
+Output: {'partner_age': 25, 'partner_citizenship': 'PR'}
+
+User: I'm applying with my non-citizen partner who makes 3000.
+Output: {'partner_income': 3000, 'partner_citizenship': 'foreigner'}
+
+Respond ONLY with a valid Python dictionary. Do not explain.
+"""
+
+    response = llm.invoke([
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": query}
-    ]
-
-    response = llm.invoke(prompt)
+    ])
 
     try:
-        # Convert LLM output string to dict safely
-        return eval(response.content) if isinstance(response.content, str) else response.content
+        return ast.literal_eval(response.content.strip())
     except Exception:
         return {}
 
@@ -598,7 +624,6 @@ def retrieve_node(state: State) -> State:
 
 def generate_node(state: State) -> State:
     context_text = "\n\n".join([doc.page_content for doc, _ in state["context"]])
-
     history_summary = summary_memory.load_memory_variables({}).get("summary", "")
 
     profile = user_profile
@@ -608,14 +633,19 @@ def generate_node(state: State) -> State:
     relationship_note = ""
     if profile.get("relationship_status") == "fiance":
         relationship_note = "Note: The user is currently unmarried but is applying with their partner, which qualifies them under the Fiancé/Fiancée Scheme (min age 21)."
-        partner_note = ""
-    if profile.get("partner_age") or profile.get("partner_income") or profile.get("partner_citizenship"):
-        partner_note = f"""
-        👫 Partner Info:
-        - Age: {profile.get('partner_age', 'unknown')}
-        - Income: {profile.get('partner_income', 'unknown')}
-        - Citizenship: {profile.get('partner_citizenship', 'unknown')}
-    """
+
+    # ✅ Dynamically build partner_note based on available fields
+    partner_note = ""
+    partner_lines = []
+    if profile.get("partner_age"):
+        partner_lines.append(f"- Age: {profile['partner_age']}")
+    if profile.get("partner_income"):
+        partner_lines.append(f"- Income: {profile['partner_income']}")
+    if profile.get("partner_citizenship"):
+        partner_lines.append(f"- Citizenship: {profile['partner_citizenship']}")
+    if partner_lines:
+        partner_note = "👫 Partner Info:\n" + "\n".join(partner_lines)
+
     profile_summary = f"""
     User Profile:
     - Age: {profile.get('age')}
@@ -626,10 +656,8 @@ def generate_node(state: State) -> State:
     {flat_context}
     {relationship_note}
     {partner_note}
-
+    
     """
-
-
     prompt = [
         {
   "role": "system",
@@ -664,6 +692,7 @@ def generate_node(state: State) -> State:
     response = llm.invoke(prompt)
     summary_memory.save_context({"input": state["question"]}, {"output": response.content})
     state["answer"] = format_answer_nicely(response.content)
+    
     return state
 
 

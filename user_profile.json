@@ -3,7 +3,7 @@
   "income": 4000,
   "flat_type": "bto",
   "relationship_status": "single",
-  "partner_age": 25,
-  "partner_income": 4000,
+  "partner_age": null,
+  "partner_income": null,
   "partner_citizenship": "Singaporean"
 }
