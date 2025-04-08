@@ -35,13 +35,15 @@
     #main-container {
       display: flex;
       flex: 1;
-      max-width: 1200px;
+      width: 100%;
       margin: 0 auto;
       padding: 20px;
       gap: 24px;
+      justify-content: center;
     }
     #chat-container {
-      flex: 3;
+      flex: 0 0 80%; /* Takes 80% width (flex-grow: 0, flex-shrink: 0, flex-basis: 80%) */
+      max-width: 80%; /* Ensures it doesn't exceed 80% */
       display: flex;
       flex-direction: column;
       background-color: white;
@@ -79,10 +81,13 @@
     .message {
       padding: 12px 16px;
       border-radius: 16px;
-      max-width: 70%;
+      max-width: 75%;
+      width: fit-content;
       line-height: 1.6;
       word-wrap: break-word;
       white-space: pre-wrap; /* <-- ensures line breaks & long lines display */
+      display: inline-block; /* Better for fit-content behavior */
+      box-sizing: content-box; /* Padding doesn't affect width calculation */
     }
     .bot {
       background-color: #e4e7ec;
@@ -137,29 +142,7 @@
       font-size: 16px;
       cursor: pointer;
     }
-    #faq-sidebar {
-      flex: 1;
-      background-color: white;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-      height: fit-content;
-    }
-    #faq-sidebar h3 {
-      font-size: 18px;
-      margin-bottom: 12px;
-      color: #111827;
-    }
-    .faq-button {
-      padding: 10px 16px;
-      background-color: #f1f5f9;
-      border: none;
-      border-radius: 8px;
-      margin: 6px 0;
-      cursor: pointer;
-      text-align: left;
-      width: 100%;
-    }
+    
     #lang-selector {
       padding: 8px;
       border-radius: 6px;
@@ -187,14 +170,6 @@
         <button id="send">Send</button>
       </div>
     </main>
-
-    <aside id="faq-sidebar">
-      <h3>Frequently Asked Questions</h3>
-      <button class="faq-button">What is the income ceiling?</button>
-      <button class="faq-button">Can a PR buy a resale flat?</button>
-      <button class="faq-button">What is the minimum age?</button>
-      <button class="faq-button">Who qualifies for EC?</button>
-    </aside>
   </div>
 
   <script>
@@ -218,7 +193,21 @@
       wrapper.appendChild(avatar);
       wrapper.appendChild(bubble);
       messages.appendChild(wrapper);
+      // messages.scrollTop = messages.scrollHeight;
+      // Enhanced auto-scroll behavior
+      // Force reflow before scrolling
+      void wrapper.offsetHeight;
+      
+      // Scroll with multiple methods for maximum compatibility
       messages.scrollTop = messages.scrollHeight;
+      messages.scrollTo({ top: messages.scrollHeight });
+      
+      // As a last resort
+      if (messages.scrollHeight > messages.clientHeight) {
+        setTimeout(() => {
+          messages.scrollTop = messages.scrollHeight;
+        }, 100);
+      }
     }
 
     function showTyping() {
