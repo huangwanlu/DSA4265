@@ -13,12 +13,14 @@
       padding: 0;
     }
     body {
-      font-family: 'Inter', sans-serif;
-      background-color: #f5f8fc;
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-    }
+  font-family: 'Inter', sans-serif;
+  background-color: #f5f8fc;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden; /* 防止整个页面滚动 */
+}
+
     header {
       background-color: #d92d20;
       color: white;
@@ -42,25 +44,28 @@
       justify-content: center;
     }
     #chat-container {
-      flex: 0 0 80%; /* Takes 80% width (flex-grow: 0, flex-shrink: 0, flex-basis: 80%) */
-      max-width: 80%; /* Ensures it doesn't exceed 80% */
-      display: flex;
-      flex-direction: column;
-      background-color: white;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-      border-radius: 12px;
-      padding: 20px;
-    }
-    #messages {
-      flex: 1;
-      overflow-y: auto;
-      margin-bottom: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      max-height: none; /* ensure it’s not cutting height */
-      overflow-wrap: break-word;
-    }
+  flex: 0 0 80%;
+  max-width: 80%;
+  height: 80vh; /* 限制整体高度 */
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  border-radius: 12px;
+  padding: 20px;
+  overflow: hidden;
+}
+
+#messages {
+  flex: 1;
+  overflow-y: auto;           /* ✅ 可滚动 */
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-right: 10px;
+  margin-bottom: 12px;
+}
+
     .message-wrapper {
       display: flex;
       align-items: flex-end;
@@ -123,16 +128,17 @@
       gap: 12px;
     }
     textarea {
-      flex: 1;
-      padding: 12px;
-      font-size: 16px;
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
-      resize: none;
-      line-height: 1.5;
-      overflow-y: hidden;
-      min-height: 40px;
-    }
+  flex: 1;
+  padding: 12px;
+  font-size: 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  resize: none;
+  line-height: 1.5;
+  overflow-y: auto;       /* allow vertical scroll */
+  min-height: 40px;
+  max-height: 200px;      /* limit the height like ChatGPT */
+}
     button {
       background-color: #2563eb;
       color: white;
@@ -267,10 +273,12 @@
       }
     });
 
-    userInput.addEventListener("input", function () {
-      this.style.height = "auto";
-      this.style.height = this.scrollHeight + "px";
-    });
+   userInput.addEventListener("input", function () {
+  this.style.height = "auto";
+  const maxHeight = 200;
+  this.style.height = Math.min(this.scrollHeight, maxHeight) + "px";
+});
+
 
     document.getElementById("lang-selector").addEventListener("change", function () {
       const lang = this.value;

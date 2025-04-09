@@ -1,18 +1,9 @@
 {
-  "age": 25,
-  "income": 4000,
-  "flat_type": "bto",
+  "age": null,
+  "income": null,
+  "flat_type": "both",
   "relationship_status": "single",
-  "partner_age": 24,
-  "partner_income": 3500,
-  "partner_citizenship": "Singaporean",
-  "grant": [
-    "MBF Now",
-    "Parenthood Tax Rebate",
-    "GST Voucher"
-  ],
-  "loan": [
-    "HDB Concessionary Loan",
-    "HDB Housing Loan"
-  ]
+  "partner_age": null,
+  "partner_income": null,
+  "partner_citizenship": null
 }

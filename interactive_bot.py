@@ -79,7 +79,7 @@ sentence_model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
 # Step 1: Load Documents with Metadata Preservation
 
 # === Load and Tag Documents with pdfplumber Layout Awareness ===
-folder_path = "D:/LECTURE/Y4S2/DSA4265/DSA4265/HDB_docs"
+folder_path = "HDB_docs"
 all_docs = []
 
 for filename in os.listdir(folder_path):
