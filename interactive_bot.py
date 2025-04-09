@@ -407,16 +407,17 @@ def ask_missing_fields():
 
 
     # Add partner info only if relationship and flat_type support it
-    flat = user_profile.get("flat_type", "").lower()
-    if user_profile.get("relationship_status") == "fiance" and flat in ["bto", "resale", "both"]:
-        partner_fields = {
-            "partner_age": " What is your partner's age?",
-            "partner_income": " What is your partner's monthly income?",
-            "partner_citizenship": " Is your partner a Singapore Citizen, PR, or foreigner?"
-        }
-        for key, question in partner_fields.items():
-            if not user_profile.get(key):
-                prompts.append(question)
+    if user_profile.get("flat_type"):
+        flat = user_profile.get("flat_type", "").lower()
+        if user_profile.get("relationship_status") == "fiance" and flat in ["bto", "resale", "both"]:
+            partner_fields = {
+                "partner_age": " What is your partner's age?",
+                "partner_income": " What is your partner's monthly income?",
+                "partner_citizenship": " Is your partner a Singapore Citizen, PR, or foreigner?"
+            }
+            for key, question in partner_fields.items():
+                if not user_profile.get(key):
+                    prompts.append(question)
 
     return " ".join(prompts)
 
@@ -508,6 +509,13 @@ def generate_node(state: State) -> State:
     context_text = "\n\n".join([doc.page_content for doc, _ in state["context"]])
     history = chat_memory.load_memory_variables({}).get("chat_history", "")
 
+    if "fact_check_feedback" in state:
+        fact_check_feedback = state.get("fact_check_feedback")
+        feedback_note = f"\n\n Feedback from earlier review (fact-checking):\n{fact_check_feedback}"
+        print(feedback_note)
+    else:
+        feedback_note = ""
+
     profile = user_profile
     flat = profile.get("flat_type")
     flat_context = "The user is interested in " + (flat if flat else "unspecified") + " flats."
@@ -540,6 +548,7 @@ def generate_node(state: State) -> State:
 - Only base your answer on the retrieved documents and known profile. Do not assume unknown values.
 - If key information is missing, mention what’s needed next to confirm eligibility.
 - Do not hallucinate schemes or make up rules.
+{feedback_note}
 
 📋 Formatting instructions:
 - Structure your answer in clear paragraphs or bullet points.
@@ -599,12 +608,54 @@ Retrieved Context:
         state["answer"] = fallback.content
     return state
 
+def fact_check_llm_node(state: State) -> State:
+    checked, response = fact_check_llm_answer(state)
+    max_iter = 1
+    iter = 0
+    while not checked and iter < max_iter:
+        # Instead of refining directly, save the fact-check feedback into state
+        state["fact_check_feedback"] = response
+        
+        # Call generate_node again with the updated state
+        state = generate_node(state)
+        
+        # Check again
+        checked, response = fact_check_llm_answer(state)
+        iter += 1
+
+    return state
+
+def fact_check_llm_answer(state: State) -> bool:
+    answer = state.get("answer", "")
+    context_text = "\n\n".join([doc.page_content for doc, _ in state["context"]])
+    question = state.get("question", "")
+    prompt = [
+        {"role": "system", "content": "You are a fact checker. Do a fact check for the generated answer. "},
+        {"role": "user", "content": f"""
+Check whether the following answer is correctly supported by the given context documents and question in general.
+
+Answer:
+{answer}
+
+Context Documents:
+{context_text}
+
+Question:
+{question}
+
+Is the answer generally supported by the documents? Reply "YES" or "NO", and explain in short answer if "NO".
+"""}
+    ]
+    check_response = llm.invoke(prompt)
+    content = check_response.content.strip()
+    return ("YES" in content.upper(), content)
+
 # ---- Build LangGraph ----
 workflow = StateGraph(State)
 workflow.add_node("generate_hypothesis", generate_hypothetical_node)
 workflow.add_node("retrieve", retrieve_node)
 workflow.add_node("generate", generate_node)
-workflow.add_node("fact_check", fact_check_node)
+workflow.add_node("fact_check", fact_check_llm_node)
 
 workflow.set_entry_point("generate_hypothesis")
 workflow.add_edge("generate_hypothesis", "retrieve")
