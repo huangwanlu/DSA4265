@@ -279,6 +279,8 @@ Extract any of the following if mentioned:
 - 'partner_age': int
 - 'partner_income': int
 - 'partner_citizenship': 'Singaporean', 'PR', or 'foreigner'
+- Only extract partner information if the user has explicitly provided it.
+- Do not assume citizenship or income based on terms like “my girlfriend” alone.
 
 Examples:
 User: I’m 25, my income is 4000, applying with my girlfriend for a BTO.
@@ -385,6 +387,8 @@ Only return the following fields **if mentioned or strongly implied**:
 - 'partner_age': int
 - 'partner_income': int
 - 'partner_citizenship': one of ['Singaporean', 'PR', 'foreigner']
+- Only extract partner information if the user has explicitly provided it.
+- Do not assume citizenship or income based on terms like “my girlfriend” alone.
 
 Examples:
 User: My fiancée is 24 and earns $3500. She's Singaporean.
@@ -564,9 +568,6 @@ def generate_hypothetical_node(state: State) -> State:
 
 
 def retrieve_node(state: State) -> State:
-    from sklearn.metrics.pairwise import cosine_similarity
-    import hashlib
-
     hyde_embedding = sentence_model.encode(state["hypothetical_doc"])
     results = []
     seen_hashes = set()
@@ -675,7 +676,8 @@ def generate_node(state: State) -> State:
 - Do not reject users from BTO eligibility just because they identify as "single" — they may be applying under the Fiancé/Fiancée Scheme if mentioned.
 - Only base your answer on the retrieved documents and known profile. Do not assume unknown values.
 - If key information is missing, mention what’s needed next to confirm eligibility.
-- Do not hallucinate schemes or make up rules.
+- Do NOT assume anything about the partner (age, income, or citizenship) unless explicitly stated by the user.
+- If partner info is missing, say it's unknown and ask for clarification.
 - If the user mentions having a partner, cross-check if relationship status is "fiancé(e)" and extract/update partner-related info from the message.
 - Avoid assuming missing details — always prefer asking follow-up questions.
 {feedback_note}
@@ -745,43 +747,43 @@ Is the answer generally supported by the documents? Reply "YES" or "NO", and exp
     content = check_response.content.strip()
     return ("YES" in content.upper(), content)
 
-def reasoning_planner(state: State) -> State:
-    from random import shuffle
+# def reasoning_planner(state: State) -> State:
+#     from random import shuffle
 
-    context_text = "\n\n".join([doc.page_content for doc, _ in state["context"]])
-    profile = user_profile
+#     context_text = "\n\n".join([doc.page_content for doc, _ in state["context"]])
+#     profile = user_profile
 
-    prompt = [
-        {
-            "role": "system",
-            "content": f"""You're an HDB reasoning planner. Your job is to explore different *paths* the user might be eligible under, based on incomplete info.
+#     prompt = [
+#         {
+#             "role": "system",
+#             "content": f"""You're an HDB reasoning planner. Your job is to explore different *paths* the user might be eligible under, based on incomplete info.
 
-📌 Instructions:
-- List multiple eligibility paths (e.g., Singles Scheme, Fiancé/Fiancée Scheme, Joint Singles).
-- Briefly explain for each path:
-  • Key criteria
-  • What is already fulfilled based on profile
-  • What info is still missing
-- Do NOT decide on the final answer. Just lay out possibilities.
+# 📌 Instructions:
+# - List multiple eligibility paths (e.g., Singles Scheme, Fiancé/Fiancée Scheme, Joint Singles).
+# - Briefly explain for each path:
+#   • Key criteria
+#   • What is already fulfilled based on profile
+#   • What info is still missing
+# - Do NOT decide on the final answer. Just lay out possibilities.
 
-📋 Format:
-- Use headers like `🏠 Fiancé/Fiancée Scheme:`
-- Use bullet points or short paragraphs under each
-- Avoid repetition; don’t decide eligibility unless certain
+# 📋 Format:
+# - Use headers like `🏠 Fiancé/Fiancée Scheme:`
+# - Use bullet points or short paragraphs under each
+# - Avoid repetition; don’t decide eligibility unless certain
 
-Known User Profile:
-{format_user_profile()}
+# Known User Profile:
+# {format_user_profile()}
 
-Retrieved context:
-{context_text}
-"""
-        },
-        {"role": "user", "content": state["question"]}
-    ]
+# Retrieved context:
+# {context_text}
+# """
+#         },
+#         {"role": "user", "content": state["question"]}
+#     ]
 
-    response = llm.invoke(prompt)
-    state["answer"] = format_answer_nicely(response.content)
-    return state
+#     response = llm.invoke(prompt)
+#     state["answer"] = format_answer_nicely(response.content)
+#     return state
 
 
 def follow_up_planner(state: State) -> State:
@@ -796,7 +798,7 @@ def follow_up_planner(state: State) -> State:
 workflow = StateGraph(State)
 workflow.add_node("generate_hypothesis", generate_hypothetical_node)
 workflow.add_node("retrieve", retrieve_node)
-workflow.add_node("reasoning", reasoning_planner)
+# workflow.add_node("reasoning", reasoning_planner)
 workflow.add_node("follow_up", follow_up_planner)
 workflow.add_node("final_response", generate_node)
 workflow.add_node("fact_check", fact_check_llm_node)
@@ -804,8 +806,9 @@ workflow.add_node("fact_check", fact_check_llm_node)
 
 workflow.set_entry_point("generate_hypothesis")
 workflow.add_edge("generate_hypothesis", "retrieve")
-workflow.add_edge("retrieve", "reasoning")
-workflow.add_edge("reasoning", "follow_up") 
+# workflow.add_edge("retrieve", "reasoning")
+workflow.add_edge("retrieve", "follow_up")
+# workflow.add_edge("reasoning", "follow_up") 
 workflow.add_edge("follow_up", "final_response")
 workflow.add_edge("final_response", "fact_check")
 
