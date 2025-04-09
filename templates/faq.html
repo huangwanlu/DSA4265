@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FAQ - Singapore Housing Eligibility Assistant</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f5f8fc;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    header {
+      background-color: #d92d20;
+      color: white;
+      padding: 16px 24px;
+      font-size: 20px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header img {
+      height: 32px;
+    }
+    .faq-container {
+      max-width: 800px;
+      margin: 30px auto;
+      padding: 0 20px;
+    }
+    .faq-title {
+      color: #1a1a1a;
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 28px;
+    }
+    .faq-item {
+      background-color: white;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      overflow: hidden;
+    }
+    .faq-question {
+      padding: 18px 20px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #1a1a1a;
+    }
+    .faq-question:hover {
+      background-color: #f9f9f9;
+    }
+    .faq-answer {
+      padding: 0 20px;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out, padding 0.3s ease;
+      color: #4d4d4d;
+      line-height: 1.6;
+    }
+    .faq-answer.active {
+      padding: 0 20px 20px;
+      max-height: 1000px;
+    }
+    .faq-toggle {
+      font-size: 20px;
+      transition: transform 0.3s ease;
+    }
+    .faq-toggle.active {
+      transform: rotate(45deg);
+    }
+    .back-button {
+      display: block;
+      text-align: center;
+      margin: 30px auto;
+      color: #0066cc;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span>🏠 Singapore Housing Eligibility Assistant</span>
+  </header>
+
+  <div class="faq-container">
+    <h1 class="faq-title">Frequently Asked Questions</h1>
+    
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleAnswer(1)">
+        <span>1. As a First-time Home Buyer, How Do I Decide Between a BTO Flat or Resale HDB Flat?</span>
+        <span class="faq-toggle">+</span>
+      </div>
+      <div class="faq-answer" id="answer1">
+        <p>The choice between a BTO vs resale flat comes down to a few factors:</p>
+        <ul>
+          <li><strong>Eligibility:</strong> Check if you meet the eligibility criteria for a BTO flat or resale flat; you will also know this when you submit your HDB Flat Eligibility (HFE) letter</li>
+          <li><strong>Price:</strong> BTO flats are generally cheaper than resale units in the same area</li>
+          <li><strong>CPF Housing Grants:</strong> For BTO flats, you may qualify for up to $80,000 in grant monies; for resale HDB flats, you may be eligible for up to $160,000</li>
+          <li><strong>Waiting time:</strong> BTO flats can take up to five years to be completed, while resale units can be moved into almost immediately</li>
+          <li><strong>Size:</strong> For the same unit type, older resale units are generally bigger</li>
+          <li><strong>Location:</strong> Resale flat buyers have more unit choices in the open market</li>
+          <li><strong>Renovation costs:</strong> BTO flats generally come as a 'blank canvas' which you can customise to your liking</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="faq-item">
+        <div class="faq-question" onclick="toggleAnswer(2)">
+          <span>2. What Are the Different Types of Homes or Properties in Singapore?</span>
+          <span class="faq-toggle">+</span>
+        </div>
+        <div class="faq-answer" id="answer2">
+          <p>Below is an overview of the types of residential properties available in Singapore:</p>
+          <h4>Public Housing (HDB flats)</h4>
+          <ul>
+            <li><strong>2-room Flexi flat:</strong> a one-bedroom unit of about 36 to 45 sq m, with a bathroom, kitchen and storeroom-cum-shelter for the elderly or smaller households</li>
+            <li><strong>3-room flat:</strong> a two-bedroom unit of about 60 sq m, with an ensuite bathroom, a common bathroom, kitchen, living area, service yard and storeroom-cum-shelter for households with one child</li>
+            <li><strong>4-room flat:</strong> a three-bedroom unit of about 90 sq m, with an ensuite bathroom, a common bathroom, kitchen, living area, service yard and storeroom-cum-shelter for households with children</li>
+            <li><strong>5-room flat:</strong> a three-bedroom unit of about 110 sq m, with an ensuite bathroom, a common bathroom, kitchen, living area, service yard and storeroom-cum-shelter, providing ample space for larger families</li>
+            <li><strong>3Gen flat:</strong> a four-bedroom unit of about 115 sq m, with two ensuite bathrooms, a common bathroom, kitchen, living area, service yard and storeroom-cum-shelter, only multi-generational families i.e. couples and their parents, or widow/divorcee with kids and parents, with a household monthly income limit of $18,000</li>
+            <li><strong>Executive flat:</strong> a three-bedroom unit of about 130 sq m, with an ensuite bathroom, a common bathroom, kitchen, living area, dining area, a storeroom-cum-shelter and possibly space for a study and/or balcony</li>
+            <li><strong>DBSS:</strong> public housing built by private developers originally intended to bridge the gap between HDB flats and private properties, the scheme has been suspended indefinitely after just 13 DBSS projects were launched</li>
+          </ul>
+          <h4>Public-private Hybrid (Executive Condominiums)</h4>
+          <p>Executive Condominiums (ECs) are units constructed and sold by private developers, with amenities similar to private condominiums, but are more affordable as their land cost is partly funded by the government. They are subject to HDB rules for the first 10 years.</p>
+          <h4>Non-landed Private Properties</h4>
+          <p>Private condominiums are similar to ECs but are privately owned from the start, with many amenities such as gated security, gyms, swimming pools and sports facilities.</p>
+          <p>There are also apartments. Compared to private condos, apartments are typically part of a smaller residential project with fewer amenities but are also usually cheaper as well.</p>
+          <h4>Landed Housing</h4>
+          <ul>
+            <li><strong>Semi-detached Houses:</strong> a single-family landed residence that shares a common wall with another similar unit, typically spotting similar layout and external appearances</li>
+            <li><strong>Terraced Homes:</strong> single-family landed residences in rows that share walls and similar appearances</li>
+            <li><strong>Cluster Houses:</strong> landed properties (either terraced, semi-detached or bungalows) built in a cluster with shared communal amenities such as gyms and swimming pools</li>
+            <li><strong>Townhouses:</strong> a spacious and private terraced home that shares communal facilities such as gyms and swimming pools with residents of other units</li>
+            <li><strong>Shophouses:</strong> prized for their heritage and historical importance, these are terraced housing with the first floor meant for commercial purposes while the upper floors can be used as offices, hotels or residences</li>
+            <li><strong>Bungalows:</strong> a one or two-storey stand-alone home of 400 to 1,400 sq m that does not share a wall with other units</li>
+            <li><strong>Good Class Bungalows (GCB):</strong> a bungalow but much bigger, with a land area over 1,400 sq m and luxuriously decked out with huge gardens, swimming pools and other amenities</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleAnswer(3)">
+          <span>3. What's the Difference Between Freehold Vs Leasehold Property in Singapore?</span>
+          <span class="faq-toggle">+</span>
+        </div>
+        <div class="faq-answer" id="answer3">
+          <p>The common understanding is that freehold properties can be held indefinitely by the buyer, while 99-year leasehold properties will revert back to the state after the tenure ends. Freehold units generally carry a higher value and have theoretical advantages, while leasehold units have been shown to offer better rental yields. As the remaining lease period gets shorter, bank loans may also be harder to get approved, and CPF money cannot be used to buy a home with less than 30 years of lease remaining.</p>
+          <p>To complicate matters, this freehold vs leasehold comparison is muddied by many long-held myths and misconceptions. Avoiding these, what it boils down to is the intention of the buyer. Choose freehold if you plan to live in the property for the long term; while leasehold makes more sense for rental income.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleAnswer(4)">
+          <span>4. What Are Singapore's Property Ownership Rules for HDB Flats?</span>
+          <span class="faq-toggle">+</span>
+        </div>
+        <div class="faq-answer" id="answer4">
+          <ul>
+            <li>An HDB flat owner(s) must be at least a Singapore Citizen or two Singapore Permanent Residents</li>
+            <li>You may not have more than one HDB flat under your name. If you just purchased a resale HDB flat, you need to dispose of the other HDB unit within six months of the resale flat purchase</li>
+            <li>If you own private property, either locally or overseas, you will need to dispose of the private property within six months of the resale flat purchase</li>
+            <li>HDB owners may purchase a private property once they've met the Minimum Occupation Period (MOP) for the HDB flat</li>
+            <li>Singapore PRs cannot own both an HDB and private property (either locally or overseas)</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleAnswer(5)">
+          <span>5. When Is a Good Time to Buy Property in Singapore?</span>
+          <span class="faq-toggle">+</span>
+        </div>
+        <div class="faq-answer" id="answer5">
+          <p>The best time to buy a property is when you are ready. There are some home purchase preparation steps to take even before you start looking for your new home.</p>
+          <ul>
+            <li>Ensure you have a stable pay cheque</li>
+            <li>Have a good credit score</li>
+            <li>Prepare a sustainable budget plan</li>
+            <li>Save more to afford the downpayment</li>
+            <li>Understand your wants versus needs to decide what goes and what stays</li>
+            <li>Decide on your type of home based on what you can afford now</li>
+            <li>Research the URA Master Plan and future development for locations you are interested in</li>
+            <li>Clear as much of your outstanding debt as you can</li>
+            <li>Get pre-approved for a mortgage if you're taking a bank loan</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleAnswer(6)">
+          <span>6. When Financing My Property Purchase, What Should I Look out For?</span>
+          <span class="faq-toggle">+</span>
+        </div>
+        <div class="faq-answer" id="answer6">
+          <ul>
+            <li>Housing loans, car loans and credit card bills</li>
+            <li>Additional Buyer's Stamp Duty (ABSD) rates and if you have to pay them on top of the existing Buyer's Stamp Duty (BSD)</li>
+            <li>Seller's Stamp Duty (SSD) for properties sold within the first three years of purchase</li>
+            <li>Loan-to-Value (LTV) limits; assuming you're buying your first property, the maximum LTV is 75% for bank loans and 80% for an HDB-granted loan</li>
+            <li>Minimum cash downpayment amount which is the smallest amount that must be paid by the buyer in cash. Any shortfall between the loan and downpayment may also need to be paid in cash</li>
+            <li>Your Total Debt Servicing Ratio (TDSR) is capped at 55%</li>
+            <li>Mortgage Servicing Ratio (MSR) for HDBs and ECs, which caps monthly loan repayments to banks at 30% to prevent borrowers from becoming overstretched</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleAnswer(7)">
+          <span>7. I'm Looking for an HDB Resale Flat. How Do I Know If I Am Eligible?</span>
+          <span class="faq-toggle">+</span>
+        </div>
+        <div class="faq-answer" id="answer7">
+          <p>When applying for your HFE letter, you will be informed of your HDB flat purchase eligibility.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleAnswer(8)">
+          <span>8. How Do I Know What Property Can I Afford?</span>
+          <span class="faq-toggle">+</span>
+        </div>
+        <div class="faq-answer" id="answer8">
+          <p>Use our Affordability Calculator to break down the maximum property value, loan amount, deposit value, as well as the fees and duties for your next home purchase.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleAnswer(9)">
+          <span>9. How Can I Buy a House in Singapore If I'm Single?</span>
+          <span class="faq-toggle">+</span>
+        </div>
+        <div class="faq-answer" id="answer9">
+          <p>Because of Singapore's property laws, a Singapore Citizen who is single has the following options: apply for a 2-room Flexi flat via HDB's BTO scheme if you are 35 years old and above. Purchase a resale HDB flat from the open market if you are 35 years old and above. Purchase a private property from the open market as long you are 21 years old and above.</p>
+          <p>Remember you can utilise your CPF grants for HDB flat purchases, provided you qualify for them.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleAnswer(10)">
+          <span>10. What Grants Are Available for First-time Home Buyers?</span>
+          <span class="faq-toggle">+</span>
+        </div>
+        <div class="faq-answer" id="answer10">
+          <p>First-time home buyers can choose to buy a flat directly from HDB at a subsidised rate, or a resale flat from the open market with the help of housing grants. For those buying as a family, the cost of your new HDB BTO flat can be reduced by up to $80,000. If you're buying a resale flat, you can offset its price by as much as $160,000 after factoring in HDB resale grants.</p>
+          <p>When you submit your HFE letter application, you will be informed of which CPF housing grants you will be eligible for and how much grant you can get.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleAnswer(11)">
+          <span>11. What Are the Property Taxes I Will Need to Pay If I Buy a Home?</span>
+          <span class="faq-toggle">+</span>
+        </div>
+        <div class="faq-answer" id="answer11">
+          <ul>
+            <li><strong>Buyer's Stamp Duty (BSD):</strong> A tax paid upon signing of the Option to Purchase/Sale & Purchase agreements, based on the actual price or market value, whichever is higher, the Buyer's Stamp Duty rates are progressively tiered</li>
+            <li><strong>Additional Buyer's Stamp Duty (ABSD):</strong> An additional tax which applies depending on the buyer's residency status and the number of properties owned by the buyer</li>
+            <li><strong>Annual property tax payable:</strong> Property owners who are staying in the said property pay lower rates, the tax is based on the Annual Value of the property</li>
+          </ul>
+          <p>Regardless of whether you buy public or private housing, you will have to pay property taxes. Use our online stamp duty calculator if you want to know how much you have to pay.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleAnswer(12)">
+          <span>12. How Do I Calculate My Home Downpayment?</span>
+          <span class="faq-toggle">+</span>
+        </div>
+        <div class="faq-answer" id="answer12">
+          <p>Use our Affordability Calculator to break down the maximum property value, loan amount, and deposit value, as well as the fees and duties for your next home purchase.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleAnswer(13)">
+          <span>13. Do I Need a Real Estate Agent to Buy a Home in Singapore?</span>
+          <span class="faq-toggle">+</span>
+        </div>
+        <div class="faq-answer" id="answer13">
+          <p>You do not necessarily need an agent to buy a home in Singapore. There is however value provided by a property agent that you may find useful.</p>
+          <p>A good agent can advise on potential problems, take care of the tedious paperwork, knows how to navigate the many property rules, can liaise with the seller's agent on your behalf, and has an industry network that helps with your buying process. However, if you are familiar enough with the process, are meticulous enough to handle all the details, and are willing to work closely with the seller's agent and your lawyer, you can buy a home without a property agent in Singapore.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleAnswer(14)">
+          <span>14. What Should I Know about Property Refinancing?</span>
+          <span class="faq-toggle">+</span>
+        </div>
+        <div class="faq-answer" id="answer14">
+          <p>Refinancing your home loan means to replace your current home loan package with a new one from another bank, usually with improved terms to lower your mortgage payments.</p>
+          <p>As good as that sounds, refinancing comes with some caveats. You will incur legal fees, usually $2,000 to $3,000. To avoid a pre-payment penalty, you will want to ensure you're not refinancing your home loan within your lock-in period. The penalty is usually 1.5% of the outstanding loan.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleAnswer(15)">
+          <span>15. I'm Buying a Property for Investment. What Is the Most Important Thing to Know?</span>
+          <span class="faq-toggle">+</span>
+        </div>
+        <div class="faq-answer" id="answer15">
+          <p>Three important considerations before buying a property for investment are:</p>
+          <ul>
+            <li><strong>Funding:</strong> The LTV limit that you can borrow from banks will vary depending on your existing properties and mortgages. Your TDSR cannot exceed 55%. These factors will determine the maximum property value that you can potentially buy</li>
+            <li><strong>Location:</strong> This greatly determines the future prospect of the property you are buying. Ask several property agents and research the price statistics of different areas on the HDB and URA websites to help you decide whether a location is worth your investment</li>
+            <li><strong>Property taxes:</strong> Know how much you have to pay for non-owner occupied residential properties tax rates</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleAnswer(16)">
+          <span>16. How Long Should I Hold an Investment Property in Singapore?</span>
+          <span class="faq-toggle">+</span>
+        </div>
+        <div class="faq-answer" id="answer16">
+          <p>In Singapore, sellers of residential properties need to be aware of Seller's Stamp Duty (SSD), which is a tax on properties sold within the first three years of purchase. This starts at 12% if sold in the first year of purchase, 8% in the second year, and 4% in the third year. You can avoid this penalty if you wait to sell your property in the fourth year, while renting out the space in the meantime.</p>
+          <p>That said, when to sell also depends on whether the price is right (i.e. has the initial price investment "matured"). Sometimes, it may be more prudent to hold a property as development of the estate or area is still ongoing.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleAnswer(17)">
+          <span>17. What is En Bloc?</span>
+          <span class="faq-toggle">+</span>
+        </div>
+        <div class="faq-answer" id="answer17">
+          <p>An "en bloc" sale is a term for the collective sale of two or more property units to a single purchaser. In Singapore, en bloc is commonly used to refer to full-development sales to a property developer or the government.</p>
+          <p>In essence, it means the property owners agree to collectively sell their units in exchange for payment. This payment is usually higher than the current market price of each individual unit as it removes the hassle and risk of the buyer having to negotiate with each individual owner.</p>
+          <p>For an en bloc deal to go through, at least 80% of the residents (based on property value and strata area) must agree to the sale if the development is more than 10 years old. 90% must agree if the development is 10 years old or below.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleAnswer(18)">
+          <span>18. Can Foreigners Buy Property in Singapore?</span>
+          <span class="faq-toggle">+</span>
+        </div>
+        <div class="faq-answer" id="answer18">
+          <p>Foreigners who are not PRs can buy private condos, privatised ECs, landed properties in Sentosa Cove, and Landed properties (with special permission from SLA). Here are some eligibility criteria to follow for foreigners buying property in Singapore.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleAnswer(19)">
+          <span>19. Can Singapore PRs Buy HDB Flats in Singapore?</span>
+          <span class="faq-toggle">+</span>
+        </div>
+        <div class="faq-answer" id="answer19">
+          <p>If you're talking about an HDB flat directly purchased from HDB (i.e. a BTO flat or SBF flat), a single PR (i.e. a PR buying without a Singapore citizen) is not permitted to purchase such property. The only way for a PR to legally buy a new HDB flat is by marrying a Singapore Citizen. If you already tied the knot with a Singapore Citizen, both of you can acquire a BTO flat via the HDB Public Scheme or the Fiancé/Fiancée Scheme.</p>
+          <p>If you're just two Singapore PRs forming a household together, you also cannot buy new, subsidised HDB flats sold by the government. But you can buy a resale flat with another Singapore PR. But both of you must have at least attained the PR status for at least three years. A single PR also cannot purchase a resale HDB flat on his/her own.</p>
+          <p>To find out more about your HDB flat eligibility, you can read our article. Alternatively, if you do want to buy an HDB flat, you can find out your HDB flat purchase eligibility when you apply for your HDB Flat Eligibility (HFE) letter.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleAnswer(20)">
+          <span>20. What Are the Rules for Buying a Second Property in Singapore?</span>
+          <span class="faq-toggle">+</span>
+        </div>
+        <div class="faq-answer" id="answer20">
+          <p>Singapore Citizens who own an HDB flat, DBSS flat or new EC must fulfil the five-year MOP before they are eligible to buy a private property.</p>
+          <p>Singapore Permanent Residents cannot own both an HDB flat and private residential property at the same time. They will need to dispose of a unit within six months of making the new purchase. Only Singapore Citizens are allowed to own an HDB flat and private property at the same time.</p>
+          <p>For those eligible, you should be aware of a few things that differ from your first property purchase. Assuming you are intending to hold both properties at the same time:</p>
+          <ul>
+            <li>Your LTV limit for your second home loan will be lower than that of your first home loan. This means you'll need to have sufficient cash on hand to make up the remainder</li>
+            <li>The minimum cash downpayment for your second property can go up to 25%. Again, do be prepared and have the required cash reserves</li>
+            <li>You'll have to pay ABSD on top of the regular BSD. For Singapore citizens buying their second property, the ABSD amount is 20%; for PRs buying their second property, the ABSD amount is 30%</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleAnswer(21)">
+          <span>21. Can I Use CPF for the Downpayment of My House?</span>
+          <span class="faq-toggle">+</span>
+        </div>
+        <div class="faq-answer" id="answer21">
+          <p>Yes, you can! Depending on what type of loan you take, the amount of downpayment that you can pay with your CPF varies. Assuming you're buying your first flat and have secured a loan with the maximum LTV limit:</p>
+          <ul>
+            <li><strong>New or resale HDB flat using an HDB loan:</strong> 20% downpayment can be made in full using CPF savings</li>
+            <li><strong>Private property, or new or resale HDB flat using a bank loan:</strong> 25% downpayment, of which at least 5% must be in cash; the remaining 20% can be paid via CPF and/or cash</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleAnswer(22)">
+          <span>22. Can I Use CPF to Finance My Home Loan?</span>
+          <span class="faq-toggle">+</span>
+        </div>
+        <div class="faq-answer" id="answer22">
+          <p>Yes, you can use your CPF Ordinary Account to finance your home loans. Aside from using your CPF savings to pay your downpayment, you can use your CPF Ordinary Account to pay for other housing-related costs, such as stamp duty, legal fees and Home Protection Scheme premiums, as well as service your monthly housing instalments.</p>
+        </div>
+      </div>
+      
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleAnswer(23)">
+          <span>23. How Much Cash Upfront Do I Need to Pay to Buy a Condo in Singapore?</span>
+          <span class="faq-toggle">+</span>
+        </div>
+        <div class="faq-answer" id="answer23">
+          <p>There is no quick answer to this as it is situational depending on your property's location, unit type, size, residential status and number of existing properties, BSD payable, maximum LTV limit, etc.</p>
+        </div>
+      </div>
+
+    <!-- Continue with the rest of your FAQs in the same format -->
+    
+    <a href="/" class="back-button">Back to Home</a>
+  </div>
+
+  <script>
+    function toggleAnswer(id) {
+      const answer = document.getElementById(`answer${id}`);
+      const toggle = document.querySelector(`#answer${id}`).previousElementSibling.querySelector('.faq-toggle');
+      answer.classList.toggle('active');
+      toggle.classList.toggle('active');
+    }
+  </script>
+</body>
+</html>

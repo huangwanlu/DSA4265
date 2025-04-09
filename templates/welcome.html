@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Singapore Housing Eligibility Assistant</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f5f8fc;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    header {
+      background-color: #d92d20;
+      color: white;
+      padding: 16px 24px;
+      font-size: 20px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header img {
+      height: 32px;
+    }
+    .welcome-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      padding: 40px 20px;
+      text-align: center;
+    }
+    .welcome-message {
+      max-width: 600px;
+      margin-bottom: 40px;
+    }
+    .welcome-message h1 {
+      color: #1a1a1a;
+      margin-bottom: 16px;
+      font-size: 28px;
+    }
+    .welcome-message p {
+      color: #4d4d4d;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+    .start-button {
+      background-color: #d92d20;
+      color: white;
+      border: none;
+      padding: 16px 32px;
+      font-size: 18px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 0.3s;
+    }
+    .start-button:hover {
+      background-color: #b82419;
+    }
+    .faq-link {
+      color: #0066cc; /* Classic blue link color */
+      font-size: 14px;
+      text-decoration: underline; /* Always underlined */
+    }
+    .faq-link:hover {
+      color: #004499; /* Darker blue on hover */
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span>🏠 Singapore Housing Eligibility Assistant</span>
+  </header>
+
+  <div class="welcome-content">
+    <div class="welcome-message">
+      <h1>Welcome to the Singapore Housing Eligibility Assistant</h1>
+      <p>This tool helps you determine your eligibility for various Singapore housing schemes. Get personalized advice and guidance on your housing options.</p>
+    </div>
+    <a href="/chat" class="start-button">Start Eligibility Check</a>
+    <a href="/faq" class="faq-link">🔍Frequently Asked Questions</a>
+  </div>
+</body>
+</html>
