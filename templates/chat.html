@@ -196,8 +196,14 @@
         <textarea id="user-input" rows="1" placeholder="Type your message here..."></textarea>
         <button id="send">Send</button>
         <div id="floating-buttons">
-          <button id="recover-history">Recover History</button>
           <button id="new-convo">New Conversation</button>
+          <button id="save-chat">Save Chat</button>   
+          <button id="recover-history">Recover History</button>      
+        </div>
+        <div id="session-id-input" style="display: none; position: fixed; top: 240px; right: 24px; background: white; padding: 12px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+          <label for="session-input" style="font-size: 14px;">Enter Session ID:</label><br>
+          <input type="text" id="session-input" style="margin-top: 6px; padding: 6px; border: 1px solid #ccc; border-radius: 4px; width: 180px;">
+          <button id="submit-session" style="margin-top: 8px; margin-left: 4px; padding: 6px 10px; font-size: 14px;">Submit</button>
         </div>
       </div>
     </main>
@@ -304,6 +310,33 @@
       this.style.height = Math.min(this.scrollHeight, maxHeight) + "px";
     });
 
+    const recoverBtn = document.getElementById("recover-history");
+    const inputBox = document.getElementById("session-id-input");
+    const inputField = document.getElementById("session-input");
+    const submitBtn = document.getElementById("submit-session");
+
+    recoverBtn.addEventListener("click", () => {
+      inputBox.style.display = inputBox.style.display === "none" ? "block" : "none";
+      inputField.focus();
+    });
+
+    submitBtn.addEventListener("click", async () => {
+      const sessionId = inputField.value.trim();
+      if (!sessionId) return alert("Please enter a session ID.");
+
+      // Hide input UI
+      inputBox.style.display = "none";
+      inputField.value = "";
+
+      // Add message to chat
+      addMessage("Revocer chat history with session id: " + sessionId, "user");
+
+      // Send to server
+      const res = await sendMessageToServer(sessionId);
+      addMessage(res.response || "No response", "bot");
+    });
+
+
 
     document.getElementById("lang-selector").addEventListener("change", function () {
       const lang = this.value;
@@ -318,8 +351,8 @@
       addMessage(res.response || "No response", "bot");
     });
 
-    document.getElementById("recover-history").addEventListener("click", async () => {
-      const message = "recover history";
+    document.getElementById("save-chat").addEventListener("click", async () => {
+      const message = "save chat";
       addMessage(message, "user");
 
       const res = await sendMessageToServer(message);
