@@ -1,0 +1,3 @@
+*.json
+user_profile.json
+__pycache__/interactive_bot.cpython-311.pyc
