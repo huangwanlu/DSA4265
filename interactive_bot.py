@@ -624,6 +624,9 @@ def retrieve_node(state: State) -> State:
 
 
 
+...
+# (snipped for brevity — see unchanged code above)
+
 def generate_node(state: State) -> State:
     context_text = "\n\n".join([doc.page_content for doc, _ in state["context"]])
     history_summary = summary_memory.load_memory_variables({}).get("summary", "")
@@ -642,7 +645,6 @@ def generate_node(state: State) -> State:
     if profile.get("relationship_status") == "fiance":
         relationship_note = "Note: The user is currently unmarried but is applying with their partner, which qualifies them under the Fiancé/Fiancée Scheme (min age 21)."
 
-    # ✅ Dynamically build partner_note based on available fields
     partner_note = ""
     partner_lines = []
     if profile.get("partner_age"):
@@ -658,54 +660,62 @@ def generate_node(state: State) -> State:
     User Profile:
     - Age: {profile.get('age')}
     - Income: {profile.get('income')}
-    - citizenship: {profile.get('income')}
+    - Citizenship: {profile.get('citizenship')}
     - Relationship Status: {profile.get('relationship_status')}
     - Flat Type: {flat or 'unspecified'}
 
     {flat_context}
     {relationship_note}
     {partner_note}
-    
     """
+
     prompt = [
         {
-  "role": "system",
-  "content": f"""You are an HDB eligibility assistant. Use the user profile and retrieved documents below to answer the user's question.
+            "role": "system",
+            "content": f"""You are an HDB eligibility assistant. You must reason strictly based on the provided context and user profile.
 
 {profile_summary}
 
-📌 Notes:
-- Do not reject users from BTO eligibility just because they identify as "single" — they may be applying under the Fiancé/Fiancée Scheme if mentioned.
-- Only base your answer on the retrieved documents and known profile. Do not assume unknown values.
-- If key information is missing, mention what’s needed next to confirm eligibility.
-- Do NOT assume anything about the partner (age, income, or citizenship) unless explicitly stated by the user.
-- If partner info is missing, say it's unknown and ask for clarification.
-- If the user mentions having a partner, cross-check if relationship status is "fiancé(e)" and extract/update partner-related info from the message.
-- Avoid assuming missing details — always prefer asking follow-up questions.
-{feedback_note}
+📌 Reasoning Rules:
+- First, identify all possible eligibility schemes (e.g., Singles Scheme, Fiancé/Fiancée Scheme, Joint Singles, etc.).
+- For each scheme:
+  • Begin with a short **paragraph** explaining what the scheme is and who it's for.
+  • Follow that with **bullet points** listing the key criteria.
+  • Use ✅ / ❌ / ❓ to indicate whether the user meets each condition.
+- Do NOT say someone is eligible unless all conditions are clearly met.
+- If information is missing, say what’s missing.
+- Do not generalize eligibility or hallucinate rules — base all reasoning on the retrieved documents.
 
-📋 Formatting instructions:
-- Structure your answer in clear paragraphs or bullet points.
-- Separate sections by eligibility paths (e.g., Singles Scheme, Fiancé/Fiancée Scheme).
-- Only list paths that may apply based on current info.
-- Keep answers concise if data is incomplete.
+📋 Format Example:
+
+🏠 Singles Scheme:
+This scheme is for single Singaporean citizens aged 35 and above applying alone for a BTO flat.
+
+• Age ≥ 35: ❌ (User is 30)
+• Singapore citizen: ✅
+• Not currently married: ✅
+
+Conclusion: ❌ Not Eligible (user does not meet age requirement)
+
+🏠 Fiancé/Fiancée Scheme:
+...
+
+{feedback_note}
 
 📚 Retrieved Context:
 {context_text}
 
 🧠 Conversation Summary:
 {history_summary or "No prior summary available."}
-
 """
-},
+        },
         {"role": "user", "content": state["question"]}
     ]
+
     response = llm.invoke(prompt)
     summary_memory.save_context({"input": state["question"]}, {"output": response.content})
     state["answer"] = format_answer_nicely(response.content)
-    
     return state
-
 
 def fact_check_llm_node(state: State) -> State:
     checked, response = fact_check_llm_answer(state)
@@ -756,43 +766,43 @@ Reply "YES" or "NO", and explain in short answer if "NO".
     content = check_response.content.strip()
     return ("YES" in content.upper(), content)
 
-# def reasoning_planner(state: State) -> State:
-#     from random import shuffle
+def reasoning_planner(state: State) -> State:
+    from random import shuffle
 
-#     context_text = "\n\n".join([doc.page_content for doc, _ in state["context"]])
-#     profile = user_profile
+    context_text = "\n\n".join([doc.page_content for doc, _ in state["context"]])
+    profile = user_profile
 
-#     prompt = [
-#         {
-#             "role": "system",
-#             "content": f"""You're an HDB reasoning planner. Your job is to explore different *paths* the user might be eligible under, based on incomplete info.
+    prompt = [
+        {
+            "role": "system",
+            "content": f"""You're an HDB reasoning planner. Your job is to explore different *paths* the user might be eligible under, based on incomplete info.
 
-# 📌 Instructions:
-# - List multiple eligibility paths (e.g., Singles Scheme, Fiancé/Fiancée Scheme, Joint Singles).
-# - Briefly explain for each path:
-#   • Key criteria
-#   • What is already fulfilled based on profile
-#   • What info is still missing
-# - Do NOT decide on the final answer. Just lay out possibilities.
+📌 Instructions:
+- List multiple eligibility paths (e.g., Singles Scheme, Fiancé/Fiancée Scheme, Joint Singles).
+- Briefly explain for each path:
+  • Key criteria
+  • What is already fulfilled based on profile
+  • What info is still missing
+- Do NOT decide on the final answer. Just lay out possibilities.
 
-# 📋 Format:
-# - Use headers like `🏠 Fiancé/Fiancée Scheme:`
-# - Use bullet points or short paragraphs under each
-# - Avoid repetition; don’t decide eligibility unless certain
+📋 Format:
+- Use headers like `🏠 Fiancé/Fiancée Scheme:`
+- Use bullet points or short paragraphs under each
+- Avoid repetition; don’t decide eligibility unless certain
 
-# Known User Profile:
-# {format_user_profile()}
+Known User Profile:
+{format_user_profile()}
 
-# Retrieved context:
-# {context_text}
-# """
-#         },
-#         {"role": "user", "content": state["question"]}
-#     ]
+Retrieved context:
+{context_text}
+"""
+        },
+        {"role": "user", "content": state["question"]}
+    ]
 
-#     response = llm.invoke(prompt)
-#     state["answer"] = format_answer_nicely(response.content)
-#     return state
+    response = llm.invoke(prompt)
+    state["answer"] = format_answer_nicely(response.content)
+    return state
 
 
 def follow_up_planner(state: State) -> State:
@@ -807,7 +817,7 @@ def follow_up_planner(state: State) -> State:
 workflow = StateGraph(State)
 workflow.add_node("generate_hypothesis", generate_hypothetical_node)
 workflow.add_node("retrieve", retrieve_node)
-# workflow.add_node("reasoning", reasoning_planner)
+workflow.add_node("reasoning", reasoning_planner)
 workflow.add_node("follow_up", follow_up_planner)
 workflow.add_node("final_response", generate_node)
 workflow.add_node("fact_check", fact_check_llm_node)
@@ -815,9 +825,9 @@ workflow.add_node("fact_check", fact_check_llm_node)
 
 workflow.set_entry_point("generate_hypothesis")
 workflow.add_edge("generate_hypothesis", "retrieve")
-# workflow.add_edge("retrieve", "reasoning")
-workflow.add_edge("retrieve", "follow_up")
-# workflow.add_edge("reasoning", "follow_up") 
+workflow.add_edge("retrieve", "reasoning")
+# workflow.add_edge("retrieve", "follow_up")
+workflow.add_edge("reasoning", "follow_up") 
 workflow.add_edge("follow_up", "final_response")
 workflow.add_edge("final_response", "fact_check")
 
