@@ -642,6 +642,7 @@ def generate_node(state: State) -> State:
     if profile.get("relationship_status") == "fiance":
         relationship_note = "Note: The user is currently unmarried but is applying with their partner, which qualifies them under the Fiancé/Fiancée Scheme (min age 21)."
 
+    # ✅ Dynamically build partner_note based on available fields
     partner_note = ""
     partner_lines = []
     if profile.get("partner_age"):
@@ -657,56 +658,53 @@ def generate_node(state: State) -> State:
     User Profile:
     - Age: {profile.get('age')}
     - Income: {profile.get('income')}
-    - Citizenship: {profile.get('citizenship')}
+    - citizenship: {profile.get('income')}
     - Relationship Status: {profile.get('relationship_status')}
     - Flat Type: {flat or 'unspecified'}
 
     {flat_context}
     {relationship_note}
     {partner_note}
+    
     """
-
     prompt = [
         {
-            "role": "system",
-            "content": f"""You are an HDB eligibility assistant. You must reason strictly based on the provided context and user profile.
+  "role": "system",
+  "content": f"""You are an HDB eligibility assistant. Use the user profile and retrieved documents below to answer the user's question.
 
 {profile_summary}
 
-📌 Reasoning Rules:
-- First, identify all possible eligibility schemes (e.g., Singles Scheme, Fiancé/Fiancée Scheme, Joint Singles, etc.).
-- For each path, check:
-  • Minimum and maximum age, income, marital/citizenship status
-  • Flat type compatibility (BTO vs Resale)
-- DO NOT say someone is eligible unless all conditions are met.
-- If any key data is missing, say what’s missing and do NOT assume.
-- Do not make up or generalize eligibility requirements — rely only on the retrieved context.
-- If the retrieved documents don’t contain clear rules, say that explicitly and ask for more info or clarification.
-- You may list multiple possible paths IF the user could potentially qualify depending on unknown details.
-- If user is below 35 and applying as a single, mention age condition explicitly before discussing eligibility.
+📌 Notes:
+- Do not reject users from BTO eligibility just because they identify as "single" — they may be applying under the Fiancé/Fiancée Scheme if mentioned.
+- Only base your answer on the retrieved documents and known profile. Do not assume unknown values.
+- If key information is missing, mention what’s needed next to confirm eligibility.
+- Do NOT assume anything about the partner (age, income, or citizenship) unless explicitly stated by the user.
+- If partner info is missing, say it's unknown and ask for clarification.
+- If the user mentions having a partner, cross-check if relationship status is "fiancé(e)" and extract/update partner-related info from the message.
+- Avoid assuming missing details — always prefer asking follow-up questions.
 {feedback_note}
 
-📋 Answer Format:
-- Use short sections per scheme: `🏠 [Scheme Name]`
-- Use bullet points for criteria
-- Use ✅ or ❌ to show if the user meets each condition
-- Be concise, and ask for clarification if needed
+📋 Formatting instructions:
+- Structure your answer in clear paragraphs or bullet points.
+- Separate sections by eligibility paths (e.g., Singles Scheme, Fiancé/Fiancée Scheme).
+- Only list paths that may apply based on current info.
+- Keep answers concise if data is incomplete.
 
 📚 Retrieved Context:
 {context_text}
 
 🧠 Conversation Summary:
 {history_summary or "No prior summary available."}
+
 """
-        },
+},
         {"role": "user", "content": state["question"]}
     ]
-
     response = llm.invoke(prompt)
     summary_memory.save_context({"input": state["question"]}, {"output": response.content})
     state["answer"] = format_answer_nicely(response.content)
+    
     return state
-
 
 
 def fact_check_llm_node(state: State) -> State:
@@ -932,3 +930,4 @@ def load_session_data_from_json(json_path):
     chat_history.clear()
     chat_history.extend(data.get("chat_history", []))
     return True
+
