@@ -726,6 +726,7 @@ def fact_check_llm_answer(state: State) -> bool:
     answer = state.get("answer", "")
     context_text = "\n\n".join([doc.page_content for doc, _ in state["context"]])
     question = state.get("question", "")
+    profile = user_profile
     prompt = [
         {"role": "system", "content": "You are a fact checker. Do a fact check for the generated answer. "},
         {"role": "user", "content": f"""
@@ -736,6 +737,12 @@ Answer:
 
 Context Documents:
 {context_text}
+
+User Profile:
+    - Age: {profile.get('age')}
+    - Income: {profile.get('income')}
+    - Relationship Status: {profile.get('relationship_status')}
+    - Flat Type: {profile.get("flat_type") or 'unspecified'}
 
 Question:
 {question}
