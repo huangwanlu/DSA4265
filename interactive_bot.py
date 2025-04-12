@@ -707,7 +707,7 @@ def generate_node(state: State) -> State:
 
 def fact_check_llm_node(state: State) -> State:
     checked, response = fact_check_llm_answer(state)
-    max_iter = 1
+    max_iter = 2
     iter = 0
     while not checked and iter < max_iter:
         # Instead of refining directly, save the fact-check feedback into state
@@ -729,7 +729,7 @@ def fact_check_llm_answer(state: State) -> bool:
     prompt = [
         {"role": "system", "content": "You are a fact checker. Do a fact check for the generated answer. "},
         {"role": "user", "content": f"""
-Check whether the following answer is correctly supported by the given context documents and question in general.
+Check the math of answer to be correct. If the answer claims user is eligible or not eligible, check the user profile satisfy the requirements of the claimed scheme or not. 
 
 Answer:
 {answer}
@@ -740,7 +740,7 @@ Context Documents:
 Question:
 {question}
 
-Is the answer generally supported by the documents? Reply "YES" or "NO", and explain in short answer if "NO".
+Reply "YES" or "NO", and explain in short answer if "NO".
 """}
     ]
     check_response = llm.invoke(prompt)
