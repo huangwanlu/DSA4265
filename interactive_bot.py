@@ -719,7 +719,7 @@ Conclusion: ❌ Not Eligible (user does not meet age requirement)
 
 def fact_check_llm_node(state: State) -> State:
     checked, response = fact_check_llm_answer(state)
-    max_iter = 2
+    max_iter = 1
     iter = 0
     while not checked and iter < max_iter:
         # Instead of refining directly, save the fact-check feedback into state
@@ -742,7 +742,7 @@ def fact_check_llm_answer(state: State) -> bool:
     prompt = [
         {"role": "system", "content": "You are a fact checker. Do a fact check for the generated answer. "},
         {"role": "user", "content": f"""
-Check the math of answer to be correct. If the answer claims user is eligible or not eligible, check the user profile satisfy the requirements of the claimed scheme or not. 
+Check the math of answer to be correct. Check whether the answer is generally supported by the document. 
 
 Answer:
 {answer}
