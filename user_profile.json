@@ -1,7 +1,8 @@
 {
-  "age": null,
-  "income": null,
-  "flat_type": "both",
+  "age": 18,
+  "income": 5431,
+  "citizenship": "Singaporean",
+  "flat_type": "bto",
   "relationship_status": "single",
   "partner_age": null,
   "partner_income": null,

@@ -79,7 +79,7 @@ sentence_model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
 # Step 1: Load Documents with Metadata Preservation
 
 # === Load and Tag Documents with pdfplumber Layout Awareness ===
-folder_path = "HDB_docs"
+folder_path = "D:/LECTURE/Y4S2/DSA4265/DSA4265/HDB_docs"
 all_docs = []
 
 for filename in os.listdir(folder_path):
@@ -238,6 +238,7 @@ def visualize_graph():
 user_profile = {
     "age": None,
     "income": None,
+    "citizenship": None,
     "flat_type": None,
     "relationship_status": None,
     "partner_age": None,
@@ -274,17 +275,18 @@ Return a Python dictionary containing only fields that are explicitly stated or 
 Extract any of the following if mentioned:
 - 'age': int
 - 'income': int
+- 'citizenship':  one of ['Singaporean', 'PR', or 'foreigner']
 - 'relationship_status': one of ['single', 'married', 'fiance', 'divorced', 'widowed']
 - 'flat_type': one of ['bto', 'resale', 'both']
 - 'partner_age': int
 - 'partner_income': int
-- 'partner_citizenship': 'Singaporean', 'PR', or 'foreigner'
+- 'partner_citizenship': one of ['Singaporean', 'PR', or 'foreigner']
 - Only extract partner information if the user has explicitly provided it.
 - Do not assume citizenship or income based on terms like “my girlfriend” alone.
 
 Examples:
 User: I’m 25, my income is 4000, applying with my girlfriend for a BTO.
-Output: {'age': 25, 'income': 4000, 'relationship_status': 'fiance', 'flat_type': 'bto'}
+Output: {'age': 25, 'income': 4000,'citizenship'= 'Singaporean', 'relationship_status': 'fiance', 'flat_type': 'bto'}
 
 User: My partner is a PR earning 3500, and I'm single.
 Output: {'relationship_status': 'single', 'partner_income': 3500, 'partner_citizenship': 'PR'}
@@ -452,14 +454,11 @@ def update_user_profile(query: str):
             user_profile[user_profile_key] = value
 
 
-
-
-
-
 def was_prompt_already_asked(field_key: str):
     question_keywords = {
         "age": ["your age", "how old are you"],
         "income": ["your income", "how much do you earn"],
+        "citizenship": ["your citizenship", "Are you a Singapore Citizen"],
         "relationship_status": ["your relationship status", "are you single"],
         "flat_type": ["bto or resale", "what flat type"],
         "partner_age": ["your partner's age"],
@@ -480,6 +479,7 @@ def ask_missing_fields():
     base_fields = {
         "age": " What is your age? ",
         "income": " What is your monthly income? ",
+        "citizenship": " What is your citizenship? ",
         "relationship_status": " What is your relationship status? ",
         "flat_type": " Are you interested in a BTO or resale flat? ",
     }
@@ -544,6 +544,7 @@ def generate_hypothetical_node(state: State) -> State:
     profile_summary = f"""User Profile:
 - Age: {profile.get('age')}
 - Income: {profile.get('income')}
+- citizenship: {profile.get('relationship_status')}
 - Relationship: {profile.get('relationship_status')}
 - Flat Type: {flat or 'unspecified'}
 - Partner Age: {profile.get('partner_age')}
@@ -641,7 +642,6 @@ def generate_node(state: State) -> State:
     if profile.get("relationship_status") == "fiance":
         relationship_note = "Note: The user is currently unmarried but is applying with their partner, which qualifies them under the Fiancé/Fiancée Scheme (min age 21)."
 
-    # ✅ Dynamically build partner_note based on available fields
     partner_note = ""
     partner_lines = []
     if profile.get("partner_age"):
@@ -657,52 +657,56 @@ def generate_node(state: State) -> State:
     User Profile:
     - Age: {profile.get('age')}
     - Income: {profile.get('income')}
+    - Citizenship: {profile.get('citizenship')}
     - Relationship Status: {profile.get('relationship_status')}
     - Flat Type: {flat or 'unspecified'}
 
     {flat_context}
     {relationship_note}
     {partner_note}
-    
     """
+
     prompt = [
         {
-  "role": "system",
-  "content": f"""You are an HDB eligibility assistant. Use the user profile and retrieved documents below to answer the user's question.
+            "role": "system",
+            "content": f"""You are an HDB eligibility assistant. You must reason strictly based on the provided context and user profile.
 
 {profile_summary}
 
-📌 Notes:
-- Do not reject users from BTO eligibility just because they identify as "single" — they may be applying under the Fiancé/Fiancée Scheme if mentioned.
-- Only base your answer on the retrieved documents and known profile. Do not assume unknown values.
-- If key information is missing, mention what’s needed next to confirm eligibility.
-- Do NOT assume anything about the partner (age, income, or citizenship) unless explicitly stated by the user.
-- If partner info is missing, say it's unknown and ask for clarification.
-- If the user mentions having a partner, cross-check if relationship status is "fiancé(e)" and extract/update partner-related info from the message.
-- Avoid assuming missing details — always prefer asking follow-up questions.
+📌 Reasoning Rules:
+- First, identify all possible eligibility schemes (e.g., Singles Scheme, Fiancé/Fiancée Scheme, Joint Singles, etc.).
+- For each path, check:
+  • Minimum and maximum age, income, marital/citizenship status
+  • Flat type compatibility (BTO vs Resale)
+- DO NOT say someone is eligible unless all conditions are met.
+- If any key data is missing, say what’s missing and do NOT assume.
+- Do not make up or generalize eligibility requirements — rely only on the retrieved context.
+- If the retrieved documents don’t contain clear rules, say that explicitly and ask for more info or clarification.
+- You may list multiple possible paths IF the user could potentially qualify depending on unknown details.
+- If user is below 35 and applying as a single, mention age condition explicitly before discussing eligibility.
 {feedback_note}
 
-📋 Formatting instructions:
-- Structure your answer in clear paragraphs or bullet points.
-- Separate sections by eligibility paths (e.g., Singles Scheme, Fiancé/Fiancée Scheme).
-- Only list paths that may apply based on current info.
-- Keep answers concise if data is incomplete.
+📋 Answer Format:
+- Use short sections per scheme: `🏠 [Scheme Name]`
+- Use bullet points for criteria
+- Use ✅ or ❌ to show if the user meets each condition
+- Be concise, and ask for clarification if needed
 
 📚 Retrieved Context:
 {context_text}
 
 🧠 Conversation Summary:
 {history_summary or "No prior summary available."}
-
 """
-},
+        },
         {"role": "user", "content": state["question"]}
     ]
+
     response = llm.invoke(prompt)
     summary_memory.save_context({"input": state["question"]}, {"output": response.content})
     state["answer"] = format_answer_nicely(response.content)
-    
     return state
+
 
 
 def fact_check_llm_node(state: State) -> State:
@@ -826,7 +830,7 @@ def interactive_chatbot(user_input, serial_code=None):
 
     # Handle page load intro
     if user_input.strip() == "__init__":
-        session_id = serial_code or str(uuid.uuid4())[:8]
+        session_id = str(uuid.uuid4())[:8] #  serial_code or 
         session["session_id"] = session_id  # <-- Add this
         chat_history.clear()
         return (
@@ -863,6 +867,7 @@ def interactive_chatbot(user_input, serial_code=None):
         user_profile = {
             "age": None,
             "income": None,
+            "citizenship": None,
             "flat_type": None,
             "relationship_status": None,
             "partner_age": None,
@@ -878,7 +883,7 @@ def interactive_chatbot(user_input, serial_code=None):
             f"🆔 Your new session ID is: {new_session_id}\n\n"
             "To get started, please tell me:\n"
             "• Your age\n"
-            "• Your citize\n"
+            "• Your citizenship\n"
             "• Your monthly income\n"
             "• Your relationship status (single, married, etc.)\n"
             "• Whether you're interested in a BTO or resale flat"
@@ -888,8 +893,10 @@ def interactive_chatbot(user_input, serial_code=None):
 
     # Use existing session
     session_id = serial_code or str(uuid.uuid4())[:8]
+    session["session_id"] = session_id  # <-- this line ensures session ID is stored
     update_user_profile(user_input)
     save_user_profile()
+
 
     chat_history.append(f"User: {user_input}")
     result = graph.invoke({
@@ -907,3 +914,14 @@ def interactive_chatbot(user_input, serial_code=None):
     chat_history.append(f"Assistant: {answer}")
     missing = ask_missing_fields()
     return f"{answer}\n\n{missing}" if missing else answer
+
+def load_session_data_from_json(json_path):
+    global user_profile, chat_history
+    if not os.path.exists(json_path):
+        return False
+    with open(json_path, "r") as f:
+        data = json.load(f)
+    user_profile.update(data.get("user_profile", {}))
+    chat_history.clear()
+    chat_history.extend(data.get("chat_history", []))
+    return True
