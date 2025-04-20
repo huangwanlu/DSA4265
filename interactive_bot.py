@@ -79,7 +79,7 @@ sentence_model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
 # Step 1: Load Documents with Metadata Preservation
 
 # === Load and Tag Documents with pdfplumber Layout Awareness ===
-folder_path = "D:/LECTURE/Y4S2/DSA4265/DSA4265/HDB_docs"
+folder_path = "HDB_docs"
 all_docs = []
 
 for filename in os.listdir(folder_path):
@@ -685,6 +685,8 @@ def generate_node(state: State) -> State:
 - Do NOT say someone is eligible unless all conditions are clearly met.
 - If information is missing, say what’s missing.
 - Do not generalize eligibility or hallucinate rules — base all reasoning on the retrieved documents.
+- If question asks about information on loan, answer only if question asks, remember "HDB Housing Loan" amount is Up to 75%.
+- If question asks about information on grant, answer only if question asks, remember there are "CPF Housing Grants", "Proximity Housing Grant", search the subcategory of BTO/resale, single/family according to user profile
 
 📋 Format Example:
 
